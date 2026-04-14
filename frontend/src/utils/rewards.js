@@ -21,17 +21,18 @@ export async function createReward(reward) {
 }
 
 export async function buyReward(rewardId, childId, familyId, cost) {
-  await supabase.from('points').insert({
+  const { error: pointsError } = await supabase.from('points').insert({
     family_id: familyId,
     child_id: childId,
     amount: -cost,
     source: 'manual',
     description: 'Покупка в магазине'
   })
+  if (pointsError) throw pointsError
 
   const { data, error } = await supabase
     .from('purchases')
-    .insert({ reward_id: rewardId, child_id: childId, cost_paid: cost })
+    .insert({ reward_id: rewardId, child_id: childId, family_id: familyId, cost_paid: cost })
     .select()
     .single()
   if (error) throw error
