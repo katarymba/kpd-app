@@ -39,12 +39,8 @@ export default function SetupFamilyPage() {
     setError('')
     setSuccess('')
 
-    if (!familyName.trim()) {
-      setError('🏡 Введи название семьи')
-      return
-    }
-    if (familyName.trim().length < 2) {
-      setError('🏡 Название семьи должно быть не менее 2 символов')
+    if (!familyName.trim() || familyName.trim().length < 2) {
+      setError('🏡 Введи название семьи (минимум 2 символа)')
       return
     }
 
@@ -65,12 +61,8 @@ export default function SetupFamilyPage() {
     setError('')
     setSuccess('')
 
-    if (!inviteCode.trim()) {
-      setError('🔑 Введи код семьи')
-      return
-    }
-    if (inviteCode.trim().length < 5) {
-      setError('🔑 Код семьи неправильный (должен быть вида KPD-XXXX)')
+    if (!inviteCode.trim() || inviteCode.trim().length < 5) {
+      setError('🔑 Введи правильный код семьи (вида KPD-XXXX)')
       return
     }
 
