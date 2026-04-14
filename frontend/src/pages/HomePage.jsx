@@ -132,11 +132,15 @@ export default function HomePage() {
     }
   }
 
-  async function handleRejectCompletion(completionId) {
-    const reason = prompt('Причина отклонения:') || 'Не указана'
+  const [rejectCompletionId, setRejectCompletionId] = useState(null)
+  const [rejectCompletionReason, setRejectCompletionReason] = useState('')
+
+  async function handleRejectCompletion(completionId, reason) {
     try {
-      await rejectCompletion(completionId, profile.id, reason)
+      await rejectCompletion(completionId, profile.id, reason || 'Не указана')
       setPendingCompletions(prev => prev.filter(c => c.id !== completionId))
+      setRejectCompletionId(null)
+      setRejectCompletionReason('')
       showToast('Задание отклонено')
     } catch (err) {
       showToast(err.message || 'Ошибка', 'error')
@@ -381,7 +385,7 @@ export default function HomePage() {
                   <button
                     className="btn-ghost btn-sm"
                     style={{ width: 'auto', fontSize: 12, padding: '6px 10px', color: 'var(--danger)', borderColor: 'var(--danger)' }}
-                    onClick={() => handleRejectCompletion(completion.id)}
+                    onClick={() => { setRejectCompletionId(completion.id); setRejectCompletionReason('') }}
                   >
                     ❌
                   </button>
@@ -568,6 +572,26 @@ export default function HomePage() {
             </div>
             <button type="submit" className="btn-primary" disabled={actionLoading || !gradeSubject.trim()}>
               {actionLoading ? 'Записываем...' : 'Записать оценку'}
+            </button>
+          </form>
+        </Modal>
+      )}
+
+      {/* Reject completion modal */}
+      {rejectCompletionId && (
+        <Modal title="❌ Причина отклонения" onClose={() => { setRejectCompletionId(null); setRejectCompletionReason('') }}>
+          <form onSubmit={e => { e.preventDefault(); handleRejectCompletion(rejectCompletionId, rejectCompletionReason) }}>
+            <div style={{ marginBottom: 16 }}>
+              <label className="label" style={{ display: 'block', marginBottom: 6 }}>Почему отклоняем?</label>
+              <input
+                type="text" className="input" placeholder="Задание выполнено не полностью"
+                value={rejectCompletionReason} onChange={e => setRejectCompletionReason(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <button type="submit" className="btn-primary"
+              style={{ background: 'var(--danger)', borderColor: 'var(--danger)' }}>
+              Отклонить
             </button>
           </form>
         </Modal>

@@ -18,6 +18,7 @@ export default function ShopPage() {
   const [newReward, setNewReward] = useState({ title: '', icon: '🎁', cost: 50, type: 'gift', description: '' })
   const [saving, setSaving] = useState(false)
   const [activeTab, setActiveTab] = useState('shop') // 'shop' | 'purchases'
+  const [confirmDeleteRewardId, setConfirmDeleteRewardId] = useState(null)
 
   const isAdult = profile && isAdultRole(profile.role)
 
@@ -88,10 +89,10 @@ export default function ShopPage() {
   }
 
   async function handleDeleteReward(rewardId) {
-    if (!confirm('Скрыть награду?')) return
     try {
       await deleteReward(rewardId)
       setRewards(prev => prev.filter(r => r.id !== rewardId))
+      setConfirmDeleteRewardId(null)
     } catch (err) {
       setError(err.message || 'Ошибка удаления.')
     }
@@ -247,7 +248,7 @@ export default function ShopPage() {
               />
               {isAdult && (
                 <button
-                  onClick={() => handleDeleteReward(reward.id)}
+                  onClick={() => setConfirmDeleteRewardId(reward.id)}
                   style={{
                     position: 'absolute', top: 6, right: 6,
                     background: 'none', border: 'none', cursor: 'pointer',
@@ -260,6 +261,35 @@ export default function ShopPage() {
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Delete reward confirmation modal */}
+      {confirmDeleteRewardId && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'flex-end', zIndex: 999
+        }} onClick={() => setConfirmDeleteRewardId(null)}>
+          <div style={{
+            background: 'white', borderRadius: '20px 20px 0 0', padding: 24, width: '100%'
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontWeight: 800, fontSize: 18, marginBottom: 12 }}>Скрыть награду?</div>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: 20 }}>
+              Награда будет скрыта из магазина.
+            </p>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button className="btn-ghost" style={{ flex: 1 }} onClick={() => setConfirmDeleteRewardId(null)}>
+                Отмена
+              </button>
+              <button
+                className="btn-primary"
+                style={{ flex: 1, background: 'var(--danger)', borderColor: 'var(--danger)' }}
+                onClick={() => handleDeleteReward(confirmDeleteRewardId)}
+              >
+                Скрыть
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </>

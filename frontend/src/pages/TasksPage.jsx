@@ -15,6 +15,26 @@ const CATEGORY_ICONS = {
 
 const isAdultRole = (role) => role === 'admin' || role === 'adult'
 
+function Modal({ title, children, onClose }) {
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+      display: 'flex', alignItems: 'flex-end', zIndex: 999
+    }} onClick={onClose}>
+      <div style={{
+        background: 'white', borderRadius: '20px 20px 0 0', padding: 24,
+        width: '100%', maxHeight: '80vh', overflowY: 'auto'
+      }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+          <div style={{ fontWeight: 800, fontSize: 18 }}>{title}</div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', lineHeight: 1 }}>×</button>
+        </div>
+        {children}
+      </div>
+    </div>
+  )
+}
+
 export default function TasksPage() {
   const { profile } = useAuth()
   const [tasks, setTasks] = useState([])
@@ -26,6 +46,9 @@ export default function TasksPage() {
   const [showAddForm, setShowAddForm] = useState(false)
   const [newTask, setNewTask] = useState({ title: '', category: 'home', type: 'daily', points: 5, assigned_to: '' })
   const [saving, setSaving] = useState(false)
+  const [rejectModal, setRejectModal] = useState(null) // completionId
+  const [rejectReason, setRejectReason] = useState('')
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null)
 
   const isAdult = profile && isAdultRole(profile.role)
 
@@ -76,21 +99,24 @@ export default function TasksPage() {
     }
   }
 
-  async function handleReject(completionId) {
-    const reason = prompt('Причина отклонения:') || 'Не указана'
+  async function handleRejectSubmit(e) {
+    e.preventDefault()
+    const reason = rejectReason.trim() || 'Не указана'
     try {
-      await rejectCompletion(completionId, profile.id, reason)
-      setPendingCompletions(prev => prev.filter(c => c.id !== completionId))
+      await rejectCompletion(rejectModal, profile.id, reason)
+      setPendingCompletions(prev => prev.filter(c => c.id !== rejectModal))
+      setRejectModal(null)
+      setRejectReason('')
     } catch (err) {
       setError(err.message || 'Ошибка отклонения.')
     }
   }
 
   async function handleDelete(taskId) {
-    if (!confirm('Удалить задание?')) return
     try {
       await deleteTask(taskId)
       setTasks(prev => prev.filter(t => t.id !== taskId))
+      setConfirmDeleteId(null)
     } catch (err) {
       setError(err.message || 'Ошибка удаления.')
     }
@@ -258,7 +284,7 @@ export default function TasksPage() {
                 <button
                   className="btn-ghost btn-sm"
                   style={{ width: 'auto', padding: '8px 12px', color: 'var(--danger)', borderColor: 'var(--danger)' }}
-                  onClick={() => handleReject(completion.id)}
+                  onClick={() => { setRejectModal(completion.id); setRejectReason('') }}
                 >
                   ❌
                 </button>
@@ -282,7 +308,7 @@ export default function TasksPage() {
             />
             {isAdult && (
               <button
-                onClick={() => handleDelete(task.id)}
+                onClick={() => setConfirmDeleteId(task.id)}
                 style={{
                   position: 'absolute', top: 8, right: 8,
                   background: 'none', border: 'none', cursor: 'pointer',
@@ -295,6 +321,47 @@ export default function TasksPage() {
             )}
           </div>
         ))
+      )}
+
+      {/* Reject reason modal */}
+      {rejectModal && (
+        <Modal title="❌ Причина отклонения" onClose={() => { setRejectModal(null); setRejectReason('') }}>
+          <form onSubmit={handleRejectSubmit}>
+            <div style={{ marginBottom: 16 }}>
+              <label className="label" style={{ display: 'block', marginBottom: 6 }}>Почему отклоняем?</label>
+              <input
+                type="text" className="input" placeholder="Задание выполнено не полностью"
+                value={rejectReason} onChange={e => setRejectReason(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <button type="submit" className="btn-primary"
+              style={{ background: 'var(--danger)', borderColor: 'var(--danger)' }}>
+              Отклонить
+            </button>
+          </form>
+        </Modal>
+      )}
+
+      {/* Delete confirmation modal */}
+      {confirmDeleteId && (
+        <Modal title="Удалить задание?" onClose={() => setConfirmDeleteId(null)}>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: 20 }}>
+            Задание будет скрыто. Это действие нельзя отменить.
+          </p>
+          <div style={{ display: 'flex', gap: 12 }}>
+            <button className="btn-ghost" style={{ flex: 1 }} onClick={() => setConfirmDeleteId(null)}>
+              Отмена
+            </button>
+            <button
+              className="btn-primary"
+              style={{ flex: 1, background: 'var(--danger)', borderColor: 'var(--danger)' }}
+              onClick={() => handleDelete(confirmDeleteId)}
+            >
+              Удалить
+            </button>
+          </div>
+        </Modal>
       )}
     </>
   )
