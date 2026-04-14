@@ -3,7 +3,7 @@
  * Фиксирована внизу экрана, поддерживает iOS safe-area.
  *
  * Props:
- *  active   {string}   — ключ активного пункта: 'home' | 'tasks' | 'shop' | 'history'
+ *  active   {string}   — ключ активного пункта: 'home' | 'tasks' | 'shop' | 'history' | 'family'
  *  onChange {Function} — (key: string) => void
  */
 
@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { key: 'tasks',   icon: '✅', label: 'Задания' },
   { key: 'shop',    icon: '🛒', label: 'Магазин' },
   { key: 'history', icon: '📊', label: 'История' },
+  { key: 'family',  icon: '👨‍👩‍👧', label: 'Семья' },
 ];
 
 export default function BottomNav({ active = 'home', onChange }) {

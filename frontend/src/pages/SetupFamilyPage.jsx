@@ -1,134 +1,193 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import {
-  getCurrentUser,
-  setCurrentUser,
-  addFamily,
-  updateUser,
-  updateFamily,
-  findFamilyByCode,
-  generateId,
-  generateInviteCode,
-} from '../utils/storage'
+import { useAuth } from '../hooks/useAuth'
+import { createFamily, joinFamily } from '../utils/auth'
+import { supabase } from '../utils/supabase'
 
 export default function SetupFamilyPage() {
   const navigate = useNavigate()
-  const user = getCurrentUser()
-  const isAdult = user?.role === 'adult'
-
+  const { profile, loading: authLoading } = useAuth()
+  const [mode, setMode] = useState(null) // 'create' | 'join'
   const [familyName, setFamilyName] = useState('')
   const [inviteCode, setInviteCode] = useState('')
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const handleCreateFamily = (e) => {
-    e.preventDefault()
-    setError('')
-
-    if (!familyName.trim()) {
-      setError('Введите название семьи')
-      return
-    }
-
-    const code = generateInviteCode()
-    const family = {
-      id: generateId('fam'),
-      name: familyName.trim(),
-      inviteCode: code,
-      createdBy: user.id,
-      members: [user.id],
-      createdAt: new Date().toISOString().slice(0, 10),
-    }
-
-    addFamily(family)
-    updateUser(user.id, { familyId: family.id })
-    setCurrentUser({ ...user, familyId: family.id })
-    navigate('/app/home')
+  if (authLoading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <div style={{ fontSize: 48 }}>⭐</div>
+      </div>
+    )
   }
 
-  const handleJoinFamily = (e) => {
+  if (!profile) {
+    navigate('/')
+    return null
+  }
+
+  if (profile.family_id) {
+    navigate('/app/home')
+    return null
+  }
+
+  const isAdult = profile?.role === 'adult'
+
+  async function handleCreate(e) {
     e.preventDefault()
     setError('')
-
-    const code = inviteCode.trim().toUpperCase()
-    if (!code) {
-      setError('Введите код приглашения')
-      return
+    setLoading(true)
+    try {
+      await createFamily(familyName, profile.id)
+      navigate('/app/home')
+    } catch (err) {
+      setError(err.message || 'Ошибка создания семьи.')
+    } finally {
+      setLoading(false)
     }
+  }
 
-    const family = findFamilyByCode(code)
-    if (!family) {
-      setError('Семья с таким кодом не найдена')
-      return
+  async function handleJoin(e) {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+    try {
+      await joinFamily(inviteCode, profile.id)
+      navigate('/app/home')
+    } catch (err) {
+      setError(err.message || 'Ошибка. Проверь код.')
+    } finally {
+      setLoading(false)
     }
+  }
 
-    const updatedMembers = family.members.includes(user.id)
-      ? family.members
-      : [...family.members, user.id]
+  async function handleLogout() {
+    await supabase.auth.signOut()
+    navigate('/')
+  }
 
-    updateFamily(family.id, { members: updatedMembers })
-    updateUser(user.id, { familyId: family.id })
-    setCurrentUser({ ...user, familyId: family.id })
-    navigate('/app/home')
+  if (mode === 'create') {
+    return (
+      <div className="app-container">
+        <div className="page" style={{ paddingTop: 40 }}>
+          <button
+            onClick={() => setMode(null)}
+            style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', marginBottom: 16, padding: 0 }}
+          >
+            ←
+          </button>
+
+          <div style={{ textAlign: 'center', marginBottom: 32 }}>
+            <div style={{ fontSize: 56, marginBottom: 8 }}>🏡</div>
+            <h1>Создать семью</h1>
+            <p style={{ color: 'var(--text-secondary)', marginTop: 8 }}>
+              После создания ты получишь код для других членов семьи
+            </p>
+          </div>
+
+          <form onSubmit={handleCreate}>
+            <div style={{ marginBottom: 24 }}>
+              <label className="label" style={{ display: 'block', marginBottom: 6 }}>Название семьи</label>
+              <input
+                type="text"
+                className="input"
+                placeholder="Например: Семья Ивановых"
+                value={familyName}
+                onChange={e => setFamilyName(e.target.value)}
+                required
+              />
+            </div>
+
+            {error && (
+              <div style={{ color: 'var(--danger)', marginBottom: 16, fontSize: 14, textAlign: 'center' }}>
+                {error}
+              </div>
+            )}
+
+            <button type="submit" className="btn-primary" disabled={loading}>
+              {loading ? 'Создаём...' : 'Создать семью'}
+            </button>
+          </form>
+        </div>
+      </div>
+    )
+  }
+
+  if (mode === 'join') {
+    return (
+      <div className="app-container">
+        <div className="page" style={{ paddingTop: 40 }}>
+          <button
+            onClick={() => setMode(null)}
+            style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', marginBottom: 16, padding: 0 }}
+          >
+            ←
+          </button>
+
+          <div style={{ textAlign: 'center', marginBottom: 32 }}>
+            <div style={{ fontSize: 56, marginBottom: 8 }}>🔑</div>
+            <h1>Вступить в семью</h1>
+            <p style={{ color: 'var(--text-secondary)', marginTop: 8 }}>
+              Введи код, который дал тебе взрослый
+            </p>
+          </div>
+
+          <form onSubmit={handleJoin}>
+            <div style={{ marginBottom: 24 }}>
+              <label className="label" style={{ display: 'block', marginBottom: 6 }}>Код семьи</label>
+              <input
+                type="text"
+                className="input"
+                placeholder="KPD-XXXX"
+                value={inviteCode}
+                onChange={e => setInviteCode(e.target.value.toUpperCase())}
+                required
+                style={{ textTransform: 'uppercase', letterSpacing: 2, fontSize: 20, textAlign: 'center' }}
+              />
+            </div>
+
+            {error && (
+              <div style={{ color: 'var(--danger)', marginBottom: 16, fontSize: 14, textAlign: 'center' }}>
+                {error}
+              </div>
+            )}
+
+            <button type="submit" className="btn-primary" disabled={loading}>
+              {loading ? 'Проверяем...' : 'Вступить в семью'}
+            </button>
+          </form>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="auth-page" style={{ paddingTop: 48 }}>
-      {isAdult ? (
-        <>
-          <div style={{ fontSize: 48, textAlign: 'center', marginBottom: 16 }}>🏠</div>
-          <h1 className="auth-title" style={{ textAlign: 'center' }}>Создай свою семью</h1>
+    <div className="app-container">
+      <div className="page" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '100vh', textAlign: 'center' }}>
+        <div style={{ fontSize: 64, marginBottom: 16 }}>👨‍👩‍👧</div>
+        <h1 style={{ marginBottom: 8 }}>Привет, {profile?.name}! 👋</h1>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: 40, fontSize: 16 }}>
+          Ты ещё не в семье. Создай новую или вступи по коду.
+        </p>
 
-          <form onSubmit={handleCreateFamily}>
-            <div className="form-group">
-              <label className="form-label" htmlFor="familyName">Название семьи</label>
-              <input
-                id="familyName"
-                className="form-input"
-                type="text"
-                value={familyName}
-                onChange={e => setFamilyName(e.target.value)}
-                placeholder="Семья Ивановых..."
-              />
-            </div>
-
-            {error && <div className="form-error">{error}</div>}
-
-            <div style={{ marginTop: 24 }}>
-              <button type="submit" className="btn-primary">Создать семью</button>
-            </div>
-          </form>
-        </>
-      ) : (
-        <>
-          <div style={{ fontSize: 48, textAlign: 'center', marginBottom: 16 }}>🔑</div>
-          <h1 className="auth-title" style={{ textAlign: 'center' }}>Введи код семьи</h1>
-
-          <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: 24, fontSize: 14 }}>
-            Попроси взрослого показать код приглашения
-          </p>
-
-          <form onSubmit={handleJoinFamily}>
-            <div className="form-group">
-              <label className="form-label" htmlFor="inviteCode">Код приглашения</label>
-              <input
-                id="inviteCode"
-                className="form-input"
-                type="text"
-                value={inviteCode}
-                onChange={e => setInviteCode(e.target.value)}
-                placeholder="KPD-XXXX"
-                style={{ textAlign: 'center', letterSpacing: 4, fontSize: 20, fontWeight: 900 }}
-              />
-            </div>
-
-            {error && <div className="form-error">{error}</div>}
-
-            <div style={{ marginTop: 24 }}>
-              <button type="submit" className="btn-primary">Вступить в семью</button>
-            </div>
-          </form>
-        </>
-      )}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {isAdult && (
+            <button className="btn-primary" onClick={() => setMode('create')}>
+              🏡 Создать семью
+            </button>
+          )}
+          <button className="btn-secondary" onClick={() => setMode('join')}>
+            🔑 Вступить по коду
+          </button>
+          <button
+            className="btn-ghost"
+            style={{ marginTop: 8 }}
+            onClick={handleLogout}
+          >
+            Выйти
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
