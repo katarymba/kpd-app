@@ -336,7 +336,7 @@ export default function SetupFamilyPage() {
               <div style={{ fontSize: 56, marginBottom: 8 }}>🔑</div>
               <h1>Присоединись к семье</h1>
               <p style={{ color: 'var(--text-secondary)', marginTop: 8 }}>
-                Введи код который дал тебе взрослый
+                Введи код, который дал тебе взрослый
               </p>
             </div>
 
