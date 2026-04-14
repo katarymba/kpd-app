@@ -170,11 +170,14 @@ create policy "likes_select" on likes for select
 create policy "likes_insert" on likes for insert
   with check (family_id in (select family_id from profiles where id = auth.uid()));
 
--- Функция автосоздания профиля при регистрации
+-- Функция для возможного использования в триггере при регистрации
+-- Профиль создаётся вручную после регистрации с именем и ролью через API
+-- Чтобы включить автосоздание профиля, добавь триггер:
+-- CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users
+--   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
-  -- Профиль создаётся вручную после регистрации с именем и ролью
   return new;
 end;
 $$ language plpgsql security definer;

@@ -32,9 +32,10 @@ export async function completeTask(taskId) {
 }
 
 export async function confirmTask(taskId, childId, familyId, points, createdBy) {
-  await supabase.from('tasks').update({ status: 'confirmed' }).eq('id', taskId)
+  const { error: taskError } = await supabase.from('tasks').update({ status: 'confirmed' }).eq('id', taskId)
+  if (taskError) throw taskError
 
-  await supabase.from('points').insert({
+  const { error: pointsError } = await supabase.from('points').insert({
     family_id: familyId,
     child_id: childId,
     amount: points,
@@ -42,4 +43,9 @@ export async function confirmTask(taskId, childId, familyId, points, createdBy) 
     description: 'Задание выполнено',
     created_by: createdBy
   })
+  if (pointsError) {
+    // Rollback task status if points insertion fails
+    await supabase.from('tasks').update({ status: 'done' }).eq('id', taskId)
+    throw pointsError
+  }
 }
