@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { getHistory } from '../utils/points'
-import BottomNav from '../components/BottomNav'
 
 const SOURCE_EMOJI = {
   task: '✅',
@@ -23,7 +21,6 @@ function formatDate(iso) {
 }
 
 export default function HistoryPage() {
-  const navigate = useNavigate()
   const { profile } = useAuth()
   const [history, setHistory] = useState([])
   const [loading, setLoading] = useState(true)
@@ -48,48 +45,45 @@ export default function HistoryPage() {
   }
 
   return (
-    <div className="app-container">
-      <div className="page">
-        <h2 style={{ marginBottom: 16 }}>История</h2>
+    <>
+      <h2 style={{ marginBottom: 16 }}>История</h2>
 
-        {error && (
-          <div style={{ color: 'var(--danger)', marginBottom: 12, fontSize: 14 }}>{error}</div>
-        )}
+      {error && (
+        <div style={{ color: 'var(--danger)', marginBottom: 12, fontSize: 14 }}>{error}</div>
+      )}
 
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: 32, fontSize: 32 }}>⭐</div>
-        ) : history.length === 0 ? (
-          <div className="card" style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: 32 }}>
-            История пока пуста. Выполняй задания, чтобы зарабатывать баллы! ⭐
-          </div>
-        ) : (
-          history.map(item => (
-            <div key={item.id} className="task-card" style={{ marginBottom: 8 }}>
-              <div
-                className="task-icon"
-                style={{ background: 'var(--bg-secondary)' }}
-                aria-hidden="true"
-              >
-                {SOURCE_EMOJI[item.source] || '⭐'}
-              </div>
-              <div className="task-info">
-                <div className="task-name">
-                  {item.profiles?.name || 'Пользователь'} — {item.description || item.source}
-                </div>
-                <div className="task-meta">{formatDate(item.created_at)}</div>
-              </div>
-              <span
-                className="task-points"
-                style={{ color: item.amount > 0 ? 'var(--primary)' : 'var(--danger)' }}
-              >
-                {item.amount > 0 ? '+' : ''}{item.amount} ⭐
-              </span>
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: 32, fontSize: 32 }}>⭐</div>
+      ) : history.length === 0 ? (
+        <div className="card" style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: 32 }}>
+          История пока пуста. Выполняй задания, чтобы зарабатывать баллы! ⭐
+        </div>
+      ) : (
+        history.map(item => (
+          <div key={item.id} className="task-card" style={{ marginBottom: 8 }}>
+            <div
+              className="task-icon"
+              style={{ background: 'var(--bg-secondary)' }}
+              aria-hidden="true"
+            >
+              {SOURCE_EMOJI[item.source] || '⭐'}
             </div>
-          ))
-        )}
-      </div>
-
-      <BottomNav active="history" onChange={key => navigate(`/app/${key}`)} />
-    </div>
+            <div className="task-info">
+              <div className="task-name">
+                {item.profiles?.name || 'Пользователь'} — {item.description || item.source}
+              </div>
+              <div className="task-meta">{formatDate(item.created_at)}</div>
+            </div>
+            <span
+              className="task-points"
+              style={{ color: item.amount > 0 ? 'var(--primary)' : 'var(--danger)' }}
+            >
+              {item.amount > 0 ? '+' : ''}{item.amount} ⭐
+            </span>
+          </div>
+        ))
+      )}
+    </>
   )
 }
+
