@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import './index.css'
-import { seedDemoData } from './utils/storage'
 
 import WelcomePage      from './pages/WelcomePage'
 import LoginPage        from './pages/LoginPage'
@@ -16,9 +15,6 @@ import HistoryPage      from './pages/HistoryPage'
 import FamilyPage       from './pages/FamilyPage'
 import ProtectedRoute   from './components/ProtectedRoute'
 
-// Инициализировать демо-данные при первом запуске
-seedDemoData()
-
 export default function App() {
   return (
     <BrowserRouter>
@@ -30,11 +26,13 @@ export default function App() {
         <Route path="/register/adult" element={<RegisterAdultPage />} />
         <Route path="/register/child" element={<RegisterChildPage />} />
 
+        {/* Настройка семьи — требует авторизацию */}
+        <Route path="/app/setup-family" element={<SetupFamilyPage />} />
+
         {/* Защищённые */}
         <Route path="/app" element={
           <ProtectedRoute><AppLayout /></ProtectedRoute>
         }>
-          <Route path="setup-family" element={<SetupFamilyPage />} />
           <Route path="home" element={<HomePage />} />
           <Route path="tasks" element={<TasksPage />} />
           <Route path="shop" element={<ShopPage />} />
