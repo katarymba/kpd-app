@@ -12,6 +12,7 @@ export default function SetupFamilyPage() {
   const [inviteCode, setInviteCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
 
   if (authLoading) {
     return (
@@ -36,10 +37,22 @@ export default function SetupFamilyPage() {
   async function handleCreate(e) {
     e.preventDefault()
     setError('')
+    setSuccess('')
+
+    if (!familyName.trim()) {
+      setError('🏡 Введи название семьи')
+      return
+    }
+    if (familyName.trim().length < 2) {
+      setError('🏡 Название семьи должно быть не менее 2 символов')
+      return
+    }
+
     setLoading(true)
     try {
-      await createFamily(familyName, profile.id)
-      navigate('/app/home')
+      await createFamily(familyName.trim(), profile.id)
+      setSuccess('✅ Семья создана! Переходим на главную...')
+      setTimeout(() => navigate('/app/home'), 1500)
     } catch (err) {
       setError(err.message || 'Ошибка создания семьи.')
     } finally {
@@ -50,10 +63,22 @@ export default function SetupFamilyPage() {
   async function handleJoin(e) {
     e.preventDefault()
     setError('')
+    setSuccess('')
+
+    if (!inviteCode.trim()) {
+      setError('🔑 Введи код семьи')
+      return
+    }
+    if (inviteCode.trim().length < 5) {
+      setError('🔑 Код семьи неправильный (должен быть вида KPD-XXXX)')
+      return
+    }
+
     setLoading(true)
     try {
-      await joinFamily(inviteCode, profile.id)
-      navigate('/app/home')
+      await joinFamily(inviteCode.trim(), profile.id)
+      setSuccess('✅ Вступил в семью! Переходим на главную...')
+      setTimeout(() => navigate('/app/home'), 1500)
     } catch (err) {
       setError(err.message || 'Ошибка. Проверь код.')
     } finally {
@@ -73,6 +98,7 @@ export default function SetupFamilyPage() {
           <button
             onClick={() => setMode(null)}
             style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', marginBottom: 16, padding: 0 }}
+            disabled={loading}
           >
             ←
           </button>
@@ -95,17 +121,41 @@ export default function SetupFamilyPage() {
                 value={familyName}
                 onChange={e => setFamilyName(e.target.value)}
                 required
+                autoFocus
+                disabled={loading}
               />
             </div>
 
             {error && (
-              <div style={{ color: 'var(--danger)', marginBottom: 16, fontSize: 14, textAlign: 'center' }}>
+              <div style={{
+                color: 'var(--danger)',
+                marginBottom: 16,
+                fontSize: 14,
+                textAlign: 'center',
+                padding: 12,
+                background: 'rgba(255, 59, 48, 0.1)',
+                borderRadius: 8,
+              }}>
                 {error}
               </div>
             )}
 
-            <button type="submit" className="btn-primary" disabled={loading}>
-              {loading ? 'Создаём...' : 'Создать семью'}
+            {success && (
+              <div style={{
+                color: '#22c55e',
+                marginBottom: 16,
+                fontSize: 14,
+                textAlign: 'center',
+                padding: 12,
+                background: 'rgba(34, 197, 94, 0.1)',
+                borderRadius: 8,
+              }}>
+                {success}
+              </div>
+            )}
+
+            <button type="submit" className="btn-primary" disabled={loading} style={{ width: '100%' }}>
+              {loading ? '⏳ Создаём...' : 'Создать семью'}
             </button>
           </form>
         </div>
@@ -120,6 +170,7 @@ export default function SetupFamilyPage() {
           <button
             onClick={() => setMode(null)}
             style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', marginBottom: 16, padding: 0 }}
+            disabled={loading}
           >
             ←
           </button>
@@ -142,18 +193,42 @@ export default function SetupFamilyPage() {
                 value={inviteCode}
                 onChange={e => setInviteCode(e.target.value.toUpperCase())}
                 required
+                autoFocus
+                disabled={loading}
                 style={{ textTransform: 'uppercase', letterSpacing: 2, fontSize: 20, textAlign: 'center' }}
               />
             </div>
 
             {error && (
-              <div style={{ color: 'var(--danger)', marginBottom: 16, fontSize: 14, textAlign: 'center' }}>
+              <div style={{
+                color: 'var(--danger)',
+                marginBottom: 16,
+                fontSize: 14,
+                textAlign: 'center',
+                padding: 12,
+                background: 'rgba(255, 59, 48, 0.1)',
+                borderRadius: 8,
+              }}>
                 {error}
               </div>
             )}
 
-            <button type="submit" className="btn-primary" disabled={loading}>
-              {loading ? 'Проверяем...' : 'Вступить в семью'}
+            {success && (
+              <div style={{
+                color: '#22c55e',
+                marginBottom: 16,
+                fontSize: 14,
+                textAlign: 'center',
+                padding: 12,
+                background: 'rgba(34, 197, 94, 0.1)',
+                borderRadius: 8,
+              }}>
+                {success}
+              </div>
+            )}
+
+            <button type="submit" className="btn-primary" disabled={loading} style={{ width: '100%' }}>
+              {loading ? '⏳ Проверяем...' : 'Вступить в семью'}
             </button>
           </form>
         </div>

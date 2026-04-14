@@ -162,6 +162,8 @@ CREATE POLICY "likes_insert" ON likes
 
 -- 9. X2_ACTIVATIONS — исправить политики
 DROP POLICY IF EXISTS "x2_all" ON x2_activations;
+DROP POLICY IF EXISTS "x2_select" ON x2_activations;
+DROP POLICY IF EXISTS "x2_insert" ON x2_activations;
 
 CREATE POLICY "x2_select" ON x2_activations
   FOR SELECT
@@ -171,7 +173,7 @@ CREATE POLICY "x2_insert" ON x2_activations
   FOR INSERT
   WITH CHECK (
     family_id IN (SELECT family_id FROM profiles WHERE id = auth.uid())
-    AND user_id = auth.uid()
+    AND child_id = auth.uid()
   );
 
 -- 10. SYSTEM_LOG — исправить политики
