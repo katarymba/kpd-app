@@ -39,8 +39,8 @@ export async function logout() {
   await supabase.auth.signOut()
 }
 
-// Получить текущего пользователя с профилем
-export async function getCurrentUser() {
+// Получить профиль текущего пользователя
+export async function getCurrentProfile() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
@@ -53,7 +53,7 @@ export async function getCurrentUser() {
   return profile
 }
 
-// Создать семью
+// Создать семью (создатель становится admin)
 export async function createFamily(name, userId) {
   const inviteCode = 'KPD-' + Math.random().toString(36).substring(2, 6).toUpperCase()
 
@@ -64,10 +64,11 @@ export async function createFamily(name, userId) {
     .single()
   if (error) throw error
 
-  await supabase
+  const { error: updateError } = await supabase
     .from('profiles')
-    .update({ family_id: family.id })
+    .update({ family_id: family.id, role: 'admin' })
     .eq('id', userId)
+  if (updateError) throw updateError
 
   return family
 }
@@ -82,10 +83,11 @@ export async function joinFamily(inviteCode, userId) {
 
   if (error || !family) throw new Error('Семья не найдена. Проверь код.')
 
-  await supabase
+  const { error: updateError } = await supabase
     .from('profiles')
     .update({ family_id: family.id })
     .eq('id', userId)
+  if (updateError) throw updateError
 
   return family
 }
@@ -96,6 +98,7 @@ export async function getFamilyMembers(familyId) {
     .from('profiles')
     .select('*')
     .eq('family_id', familyId)
+    .order('created_at', { ascending: true })
   if (error) throw error
   return data
 }

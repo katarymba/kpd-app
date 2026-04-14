@@ -31,7 +31,7 @@ export default function SetupFamilyPage() {
     return null
   }
 
-  const isAdult = profile?.role === 'adult'
+  const isAdult = profile?.role === 'adult' || profile?.role === 'admin'
 
   async function handleCreate(e) {
     e.preventDefault()
