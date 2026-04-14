@@ -14,11 +14,19 @@ export default function RegisterAdultPage() {
     e.preventDefault()
     setError('')
     setLoading(true)
+
     try {
       await register({ name, email, password, role: 'adult' })
+      // Успешная регистрация -> на настройку семьи
       navigate('/app/setup-family')
     } catch (err) {
-      setError(err.message || 'Ошибка регистрации. Попробуй снова.')
+      // Supabase ошибки часто в err.message
+      console.error('Register adult error', err)
+      const message =
+        err?.message ||
+        err?.error_description ||
+        'Ошибка регистрации. Попробуй снова.'
+      setError(message)
     } finally {
       setLoading(false)
     }
@@ -28,8 +36,16 @@ export default function RegisterAdultPage() {
     <div className="app-container">
       <div className="page" style={{ paddingTop: 40 }}>
         <button
+          type="button"
           onClick={() => navigate('/register')}
-          style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', marginBottom: 16, padding: 0 }}
+          style={{
+            background: 'none',
+            border: 'none',
+            fontSize: 24,
+            cursor: 'pointer',
+            marginBottom: 16,
+            padding: 0,
+          }}
         >
           ←
         </button>
@@ -37,45 +53,66 @@ export default function RegisterAdultPage() {
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <div style={{ fontSize: 56, marginBottom: 8 }}>👩</div>
           <h1>Регистрация взрослого</h1>
-          <p style={{ color: 'var(--text-secondary)', marginTop: 8 }}>
+          <p
+            style={{
+              color: 'var(--text-secondary)',
+              marginTop: 8,
+            }}
+          >
             Ты будешь управлять семьёй и заданиями
           </p>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} noValidate>
           <div style={{ marginBottom: 16 }}>
-            <label className="label" style={{ display: 'block', marginBottom: 6 }}>Имя</label>
+            <label
+              className="label"
+              style={{ display: 'block', marginBottom: 6 }}
+            >
+              Имя
+            </label>
             <input
               type="text"
               className="input"
               placeholder="Как тебя зовут?"
               value={name}
-              onChange={e => setName(e.target.value)}
+              onChange={(e) => setName(e.target.value)}
               required
+              autoComplete="name"
             />
           </div>
 
           <div style={{ marginBottom: 16 }}>
-            <label className="label" style={{ display: 'block', marginBottom: 6 }}>Email</label>
+            <label
+              className="label"
+              style={{ display: 'block', marginBottom: 6 }}
+            >
+              Email
+            </label>
             <input
               type="email"
               className="input"
               placeholder="твой@email.com"
               value={email}
-              onChange={e => setEmail(e.target.value)}
+              onChange={(e) => setEmail(e.target.value)}
               required
               autoComplete="email"
             />
           </div>
 
           <div style={{ marginBottom: 24 }}>
-            <label className="label" style={{ display: 'block', marginBottom: 6 }}>Пароль</label>
+            <label
+              className="label"
+              style={{ display: 'block', marginBottom: 6 }}
+            >
+              Пароль
+            </label>
             <input
               type="password"
               className="input"
               placeholder="Минимум 6 символов"
               value={password}
-              onChange={e => setPassword(e.target.value)}
+              onChange={(e) => setPassword(e.target.value)}
               required
               minLength={6}
               autoComplete="new-password"
@@ -83,19 +120,41 @@ export default function RegisterAdultPage() {
           </div>
 
           {error && (
-            <div style={{ color: 'var(--danger)', marginBottom: 16, fontSize: 14, textAlign: 'center' }}>
+            <div
+              style={{
+                color: 'var(--danger)',
+                marginBottom: 16,
+                fontSize: 14,
+                textAlign: 'center',
+              }}
+            >
               {error}
             </div>
           )}
 
-          <button type="submit" className="btn-primary" disabled={loading}>
+          <button
+            type="submit"
+            className="btn-primary"
+            disabled={loading}
+            style={{ width: '100%' }}
+          >
             {loading ? 'Создаём аккаунт...' : 'Зарегистрироваться'}
           </button>
         </form>
 
-        <p style={{ textAlign: 'center', marginTop: 24, color: 'var(--text-secondary)', fontSize: 14 }}>
+        <p
+          style={{
+            textAlign: 'center',
+            marginTop: 24,
+            color: 'var(--text-secondary)',
+            fontSize: 14,
+          }}
+        >
           Уже есть аккаунт?{' '}
-          <Link to="/login" style={{ color: 'var(--secondary)', fontWeight: 700 }}>
+          <Link
+            to="/login"
+            style={{ color: 'var(--secondary)', fontWeight: 700 }}
+          >
             Войти
           </Link>
         </p>
