@@ -2,19 +2,16 @@ import { supabase } from './supabase'
 
 /**
  * Регистрация пользователя.
- * 1) Создаём пользователя в Supabase Auth
- * 2) Создаём профиль в таблице profiles
+ * 1) Создаём пользователя в Supabase Auth (signUp)
+ * 2) Получаем актуальную сессию и user.id
+ * 3) Создаём профиль в таблице profiles с id === auth.uid()
  */
 export async function register({ name, email, password, role }) {
-  // 1. Регистрация в Auth
-  const {
-    data: { user },
-    error: signUpError,
-  } = await supabase.auth.signUp({
+  // 1. Регистрируем пользователя
+  const { data, error: signUpError } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      // Эти данные попадут в auth.users -> raw_user_meta_data
       data: { name, role },
     },
   })
@@ -23,49 +20,58 @@ export async function register({ name, email, password, role }) {
     throw signUpError
   }
 
-  if (!user?.id) {
-    throw new Error('Не удалось создать пользователя. Попробуй ещё раз.')
+  // user может быть в data.user или data.session.user
+  const signupUser = data?.user ?? data?.session?.user
+  if (!signupUser?.id) {
+    throw new Error('Не удалось получить пользователя после регистрации.')
   }
 
-  // 2. Создание профиля.
-  // Важно: id профиля должен совпадать с auth.uid(), иначе RLS не пропустит.
+  // 2. Гарантируем, что сессия подхвачена и auth.uid() установлен
+  const { data: sessionData, error: sessionError } =
+    await supabase.auth.getSession()
+
+  if (sessionError) {
+    throw sessionError
+  }
+
+  const sessionUser = sessionData?.session?.user
+  const effectiveUserId = sessionUser?.id ?? signupUser.id
+
+  if (!effectiveUserId) {
+    throw new Error('Не удалось получить ID текущего пользователя.')
+  }
+
+  // 3. Создаём профиль. ВАЖНО: id === auth.uid(), иначе RLS не пустит.
   const { error: profileError } = await supabase.from('profiles').insert({
-    id: user.id,
+    id: effectiveUserId,
     name,
     role,
     family_id: null,
   })
 
   if (profileError) {
-    // Здесь как раз может быть "new row violates row-level security policy..."
+    // Чтобы было проще дебажить, логируем в консоль
+    console.error('Profile insert error', profileError)
     throw profileError
   }
 
-  return user
+  return { userId: effectiveUserId }
 }
 
 /**
- * Вход пользователя по email / password.
+ * Вход по email и паролю.
  */
 export async function login({ email, password }) {
-  const {
-    data,
-    error,
-  } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
   })
-
-  if (error) {
-    throw error
-  }
-
-  // В v2 supabase-js user лежит в data.user
+  if (error) throw error
   return data.user
 }
 
 /**
- * Выход пользователя.
+ * Выход.
  */
 export async function logout() {
   const { error } = await supabase.auth.signOut()
@@ -73,7 +79,7 @@ export async function logout() {
 }
 
 /**
- * Получить профиль текущего пользователя (по auth.getUser()).
+ * Текущий профиль пользователя.
  */
 export async function getCurrentProfile() {
   const {
@@ -81,13 +87,8 @@ export async function getCurrentProfile() {
     error: userError,
   } = await supabase.auth.getUser()
 
-  if (userError) {
-    throw userError
-  }
-
-  if (!user) {
-    return null
-  }
+  if (userError) throw userError
+  if (!user) return null
 
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
@@ -95,9 +96,7 @@ export async function getCurrentProfile() {
     .eq('id', user.id)
     .single()
 
-  if (profileError) {
-    throw profileError
-  }
+  if (profileError) throw profileError
 
   return profile
 }
@@ -117,19 +116,13 @@ export async function createFamily(name, userId) {
     .insert({ name, invite_code: inviteCode, created_by: userId })
     .select()
     .single()
-
-  if (error) {
-    throw error
-  }
+  if (error) throw error
 
   const { error: updateError } = await supabase
     .from('profiles')
     .update({ family_id: family.id, role: 'admin' })
     .eq('id', userId)
-
-  if (updateError) {
-    throw updateError
-  }
+  if (updateError) throw updateError
 
   return family
 }
@@ -147,24 +140,19 @@ export async function joinFamily(inviteCode, userId) {
     .eq('invite_code', inviteCode.toUpperCase())
     .single()
 
-  if (error || !family) {
-    throw new Error('Семья не найдена. Проверь код.')
-  }
+  if (error || !family) throw new Error('Семья не найдена. Проверь код.')
 
   const { error: updateError } = await supabase
     .from('profiles')
     .update({ family_id: family.id })
     .eq('id', userId)
-
-  if (updateError) {
-    throw updateError
-  }
+  if (updateError) throw updateError
 
   return family
 }
 
 /**
- * Получить всех членов семьи.
+ * Все члены семьи.
  */
 export async function getFamilyMembers(familyId) {
   const { data, error } = await supabase
@@ -172,10 +160,6 @@ export async function getFamilyMembers(familyId) {
     .select('*')
     .eq('family_id', familyId)
     .order('created_at', { ascending: true })
-
-  if (error) {
-    throw error
-  }
-
+  if (error) throw error
   return data
 }
