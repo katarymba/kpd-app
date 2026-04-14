@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { register } from '../utils/auth'
+import { supabase } from '../utils/supabase'
+import { translateSupabaseError } from '../utils/errorMessages'
 
 export default function RegisterAdultPage() {
   const navigate = useNavigate()
@@ -20,11 +21,19 @@ export default function RegisterAdultPage() {
       setError('👤 Имя должно быть не менее 2 символов')
       return false
     }
-    if (!email.trim() || !email.includes('@')) {
-      setError('📧 Введи корректный email адрес')
+    if (!email.trim()) {
+      setError('📧 Введи email')
       return false
     }
-    if (!password || password.length < 6) {
+    if (!email.includes('@') || !email.includes('.')) {
+      setError('📧 Введи корректный email адрес (например: name@mail.com)')
+      return false
+    }
+    if (!password) {
+      setError('🔒 Введи пароль')
+      return false
+    }
+    if (password.length < 6) {
       setError('🔒 Пароль должен быть минимум 6 символов')
       return false
     }
@@ -43,10 +52,74 @@ export default function RegisterAdultPage() {
     setLoading(true)
 
     try {
-      await register({ name: name.trim(), email: email.trim(), password, role: 'adult' })
+      const trimmedName = name.trim()
+      const trimmedEmail = email.trim().toLowerCase()
+
+      // 1. Зарегистрировать пользователя
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+        email: trimmedEmail,
+        password,
+        options: {
+          data: {
+            name: trimmedName,
+            role: 'adult',
+          },
+        },
+      })
+
+      if (signUpError) {
+        console.error('SignUp error:', signUpError)
+        throw new Error(translateSupabaseError(signUpError))
+      }
+
+      const user = authData?.user
+      if (!user?.id) {
+        throw new Error('Не удалось создать пользователя. Попробуй другой email.')
+      }
+
+      // 2. Подождать создания профиля (триггер)
+      await new Promise(resolve => setTimeout(resolve, 1500))
+
+      // 3. Проверить что профиль создался
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, name, role')
+        .eq('id', user.id)
+        .maybeSingle()
+
+      if (profileError) {
+        console.error('Profile check error:', profileError)
+      }
+
+      if (!profile) {
+        // Попробовать создать профиль вручную
+        console.log('Profile not found, creating manually...')
+        const { error: createProfileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: user.id,
+            name: trimmedName,
+            role: 'adult',
+            family_id: null,
+            avatar: '👤',
+          })
+
+        if (createProfileError) {
+          console.error('Manual profile creation error:', createProfileError)
+          throw new Error('Не удалось создать профиль. Попробуй войти через несколько минут.')
+        }
+      }
+
+      // 4. Проверить сессию
+      const { error: sessionError } = await supabase.auth.getSession()
+      if (sessionError) {
+        console.error('Session error:', sessionError)
+      }
+
+      // 5. Перенаправить на создание семьи
       navigate('/app/setup-family')
     } catch (err) {
-      console.error('Register adult error', err)
+      console.error('Register adult error:', err)
       setError(err.message || 'Ошибка регистрации. Попробуй снова.')
     } finally {
       setLoading(false)
@@ -93,6 +166,7 @@ export default function RegisterAdultPage() {
               required
               autoComplete="name"
               autoFocus
+              disabled={loading}
             />
           </div>
 
@@ -108,6 +182,7 @@ export default function RegisterAdultPage() {
               onChange={(e) => setEmail(e.target.value)}
               required
               autoComplete="email"
+              disabled={loading}
             />
           </div>
 
@@ -126,10 +201,12 @@ export default function RegisterAdultPage() {
                 minLength={6}
                 autoComplete="new-password"
                 style={{ paddingRight: 40 }}
+                disabled={loading}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
+                disabled={loading}
                 style={{
                   position: 'absolute',
                   right: 10,
@@ -161,6 +238,7 @@ export default function RegisterAdultPage() {
                 padding: 12,
                 background: 'rgba(255, 59, 48, 0.1)',
                 borderRadius: 8,
+                border: '1px solid rgba(255, 59, 48, 0.2)',
               }}
             >
               {error}
