@@ -20,11 +20,11 @@ export function translateSupabaseError(error) {
     return '🔒 Введи корректный пароль (минимум 6 символов)'
   }
 
-  if (message.includes('User already registered')) {
+  if (message.includes('User already registered') || message.includes('already been registered')) {
     return '📧 Этот email уже зарегистрирован. Попробуй войти или используй другой email.'
   }
 
-  if (message.includes('Unable to validate email address')) {
+  if (message.includes('Unable to validate email address') || message.includes('Invalid email')) {
     return '📧 Проверь правильность email адреса'
   }
 
@@ -55,8 +55,8 @@ export function translateSupabaseError(error) {
     return '👤 Профиль не найден. Попробуй выйти и войти заново, или обратись к администратору.'
   }
 
-  if (code === '23505' || message.includes('duplicate key')) {
-    return '⚠️ Этот email уже используется'
+  if (code === '23505' || message.includes('duplicate key') || message.includes('already exists')) {
+    return '⚠️ Этот email или код уже используется'
   }
 
   if (code === '23503' || message.includes('violates foreign key')) {
@@ -64,13 +64,18 @@ export function translateSupabaseError(error) {
   }
 
   // RLS Policy errors
-  if (message.includes('row-level security') || message.includes('policy')) {
-    return '🔐 Недостаточно прав для выполнения действия'
+  if (message.includes('row-level security') || message.includes('policy') || message.includes('permission denied')) {
+    return '🔐 Недостаточно прав для выполнения действия. Попробуй выйти и войти снова.'
   }
 
   // Timeout
   if (message.includes('timeout')) {
     return '⏱️ Превышено время ожидания. Попробуй ещё раз.'
+  }
+
+  // Session errors
+  if (message.includes('session') || message.includes('token')) {
+    return '🔑 Сессия устарела. Попробуй выйти и войти снова.'
   }
 
   // Generic fallback
