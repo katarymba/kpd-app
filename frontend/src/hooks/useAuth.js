@@ -7,18 +7,25 @@ export function useAuth() {
   const [loading, setLoading] = useState(true)
 
   async function loadProfile(userId) {
+    console.log('loadProfile for', userId)
     setLoading(true)
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
       .single()
-    setProfile(data)
+    console.log('loadProfile result', { data, error })
+    if (error) {
+      // чтобы увидеть ошибку
+      console.error('loadProfile error', error)
+    }
+    setProfile(data || null)
     setLoading(false)
   }
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session', session)
       if (session?.user) {
         setUser(session.user)
         loadProfile(session.user.id)
@@ -27,18 +34,19 @@ export function useAuth() {
       }
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (session?.user) {
-          setUser(session.user)
-          await loadProfile(session.user.id)
-        } else {
-          setUser(null)
-          setProfile(null)
-          setLoading(false)
-        }
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed', event, session)
+      if (session?.user) {
+        setUser(session.user)
+        await loadProfile(session.user.id)
+      } else {
+        setUser(null)
+        setProfile(null)
+        setLoading(false)
       }
-    )
+    })
 
     return () => subscription.unsubscribe()
   }, [])
