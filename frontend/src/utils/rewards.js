@@ -129,7 +129,7 @@ export async function getPendingPurchases(familyId) {
   return data
 }
 
-// Взрослый подтверждает выдачу награды
+// Взрослый подтвержд��ет выдачу награды
 export async function approvePurchase(purchaseId, approvedBy) {
   const { data, error } = await supabase
     .from('purchases')

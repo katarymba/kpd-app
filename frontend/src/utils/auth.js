@@ -55,7 +55,7 @@ export async function getCurrentProfile() {
 
 // Создать семью (создатель становится admin)
 export async function createFamily(name, userId) {
-  const inviteCode = 'KPD-' + Math.random().toString(36).substr(2, 4).toUpperCase()
+  const inviteCode = 'KPD-' + Math.random().toString(36).substring(2, 6).toUpperCase()
 
   const { data: family, error } = await supabase
     .from('families')
