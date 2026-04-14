@@ -74,6 +74,17 @@ VITE_SUPABASE_ANON_KEY=твой_anon_key
    Всего профилей: X
    ```
 
+### 4.5 Применение миграции 004 (КРИТИЧНО — исправляет 403 Forbidden!)
+1. Открой файл `supabase/migrations/004_fix_families_rls.sql`
+2. Скопируй ВСЁ содержимое
+3. Вставь в SQL Editor
+4. Нажми **Run**
+5. Должно появиться сообщение:
+   ```
+   Миграция 004 завершена!
+   RLS политики обновлены для всех таблиц
+   ```
+
 ## Шаг 5: Настройка Authentication
 
 ### 5.1 Открой настройки Auth
@@ -154,6 +165,15 @@ WHERE trigger_schema = 'public' OR event_object_schema = 'auth';
 4. ✅ Должно войти без ошибок
 
 ## Решение проблем
+
+### Проблема: "403 Forbidden при создании семьи"
+**Решение**:
+1. Примени миграцию 004 в Supabase SQL Editor
+2. Проверь что политики добавлены:
+```sql
+SELECT tablename, policyname FROM pg_policies WHERE tablename = 'families';
+```
+3. Должна быть политика `families_insert`
 
 ### Проблема: "email rate limit exceeded"
 **Решение**: 
