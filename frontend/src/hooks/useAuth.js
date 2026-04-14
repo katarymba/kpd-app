@@ -13,12 +13,12 @@ export function useAuth() {
       .from('profiles')
       .select('*')
       .eq('id', userId)
-      .single()
-    console.log('loadProfile result', { data, error })
-    if (error) {
-      // чтобы увидеть ошибку
+      .maybeSingle()
+
+    if (error && error.code !== 'PGRST116') {
       console.error('loadProfile error', error)
     }
+
     setProfile(data || null)
     setLoading(false)
   }
