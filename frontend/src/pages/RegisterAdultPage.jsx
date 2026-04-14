@@ -1,108 +1,104 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { getUsers, addUser, setCurrentUser, generateId } from '../utils/storage'
+import { register } from '../utils/auth'
 
 export default function RegisterAdultPage() {
   const navigate = useNavigate()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const handleSubmit = (e) => {
+  async function handleSubmit(e) {
     e.preventDefault()
     setError('')
-
-    if (!name.trim() || !email.trim() || !password) {
-      setError('Заполните все поля')
-      return
+    setLoading(true)
+    try {
+      await register({ name, email, password, role: 'adult' })
+      navigate('/app/setup-family')
+    } catch (err) {
+      setError(err.message || 'Ошибка регистрации. Попробуй снова.')
+    } finally {
+      setLoading(false)
     }
-    if (!email.includes('@')) {
-      setError('Введите корректный email')
-      return
-    }
-
-    const users = getUsers()
-    if (users.find(u => u.email === email)) {
-      setError('Пользователь с таким email уже существует')
-      return
-    }
-
-    const user = {
-      id: generateId('user'),
-      name: name.trim(),
-      email: email.trim(),
-      password,
-      role: 'adult',
-      familyId: null,
-      createdAt: new Date().toISOString().slice(0, 10),
-    }
-
-    addUser(user)
-    setCurrentUser({ id: user.id, name: user.name, role: user.role, familyId: null })
-    navigate('/app/setup-family')
   }
 
   return (
-    <div className="auth-page">
-      <button className="auth-back" onClick={() => navigate(-1)} aria-label="Назад">
-        ←
-      </button>
+    <div className="app-container">
+      <div className="page" style={{ paddingTop: 40 }}>
+        <button
+          onClick={() => navigate('/register')}
+          style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', marginBottom: 16, padding: 0 }}
+        >
+          ←
+        </button>
 
-      <h1 className="auth-title">Регистрация взрослого 👨‍👩‍👧</h1>
-
-      <form onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label className="form-label" htmlFor="name">Как тебя зовут?</label>
-          <input
-            id="name"
-            className="form-input"
-            type="text"
-            value={name}
-            onChange={e => setName(e.target.value)}
-            placeholder="Мама / Папа / Бабушка..."
-            autoComplete="name"
-          />
+        <div style={{ textAlign: 'center', marginBottom: 32 }}>
+          <div style={{ fontSize: 56, marginBottom: 8 }}>👩</div>
+          <h1>Регистрация взрослого</h1>
+          <p style={{ color: 'var(--text-secondary)', marginTop: 8 }}>
+            Ты будешь управлять семьёй и заданиями
+          </p>
         </div>
 
-        <div className="form-group">
-          <label className="form-label" htmlFor="email">Email</label>
-          <input
-            id="email"
-            className="form-input"
-            type="email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            placeholder="mama@example.com"
-            autoComplete="email"
-          />
-        </div>
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: 16 }}>
+            <label className="label" style={{ display: 'block', marginBottom: 6 }}>Имя</label>
+            <input
+              type="text"
+              className="input"
+              placeholder="Как тебя зовут?"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              required
+            />
+          </div>
 
-        <div className="form-group">
-          <label className="form-label" htmlFor="password">Пароль</label>
-          <input
-            id="password"
-            className="form-input"
-            type="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            placeholder="••••••"
-            autoComplete="new-password"
-          />
-        </div>
+          <div style={{ marginBottom: 16 }}>
+            <label className="label" style={{ display: 'block', marginBottom: 6 }}>Email</label>
+            <input
+              type="email"
+              className="input"
+              placeholder="твой@email.com"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              required
+              autoComplete="email"
+            />
+          </div>
 
-        {error && <div className="form-error">{error}</div>}
+          <div style={{ marginBottom: 24 }}>
+            <label className="label" style={{ display: 'block', marginBottom: 6 }}>Пароль</label>
+            <input
+              type="password"
+              className="input"
+              placeholder="Минимум 6 символов"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              required
+              minLength={6}
+              autoComplete="new-password"
+            />
+          </div>
 
-        <div style={{ marginTop: 24 }}>
-          <button type="submit" className="btn-primary">Создать аккаунт</button>
-        </div>
-      </form>
+          {error && (
+            <div style={{ color: 'var(--danger)', marginBottom: 16, fontSize: 14, textAlign: 'center' }}>
+              {error}
+            </div>
+          )}
 
-      <div style={{ marginTop: 16, textAlign: 'center', fontSize: 14, color: 'var(--text-secondary)' }}>
-        Уже есть аккаунт?{' '}
-        <Link to="/login" style={{ color: 'var(--primary)', fontWeight: 700 }}>
-          Войти
-        </Link>
+          <button type="submit" className="btn-primary" disabled={loading}>
+            {loading ? 'Создаём аккаунт...' : 'Зарегистрироваться'}
+          </button>
+        </form>
+
+        <p style={{ textAlign: 'center', marginTop: 24, color: 'var(--text-secondary)', fontSize: 14 }}>
+          Уже есть аккаунт?{' '}
+          <Link to="/login" style={{ color: 'var(--secondary)', fontWeight: 700 }}>
+            Войти
+          </Link>
+        </p>
       </div>
     </div>
   )
