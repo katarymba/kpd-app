@@ -1,13 +1,12 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { register } from '../utils/auth'
+import { supabase } from '../utils/supabase'
+import { translateSupabaseError } from '../utils/errorMessages'
 
 export default function RegisterChildPage() {
   const navigate = useNavigate()
   const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
+  const [inviteCode, setInviteCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -20,12 +19,12 @@ export default function RegisterChildPage() {
       setError('👤 Имя должно быть не менее 2 символов')
       return false
     }
-    if (!email.trim() || !email.includes('@')) {
-      setError('📧 Введи корректный email адрес')
+    if (!inviteCode.trim()) {
+      setError('🔑 Введи код семьи')
       return false
     }
-    if (!password || password.length < 6) {
-      setError('🔒 Пароль должен быть минимум 6 символов')
+    if (inviteCode.trim().length < 5) {
+      setError('🔑 Код семьи неправильный (должен быть вида KPD-XXXX)')
       return false
     }
     return true
@@ -35,17 +34,80 @@ export default function RegisterChildPage() {
     e.preventDefault()
     setError('')
 
-    // Валидация перед отправкой
     if (!validateForm()) {
       return
     }
 
     setLoading(true)
+
     try {
-      await register({ name: name.trim(), email: email.trim(), password, role: 'child' })
-      // Дети вступают в уже существующую семью по коду от взрослого,
-      // поэтому перенаправляем на страницу присоединения к семье.
-      navigate('/app/join-family')
+      // 1. Проверить что семья существует
+      const { data: family, error: familyError } = await supabase
+        .from('families')
+        .select('id, name')
+        .eq('invite_code', inviteCode.trim().toUpperCase())
+        .single()
+
+      if (familyError || !family) {
+        throw new Error('🔍 Семья с таким кодом не найдена. Проверь код.')
+      }
+
+      // 2. Создать технический email и безопасный пароль
+      const timestamp = Date.now()
+      const techEmail = `${name.trim().toLowerCase().replace(/\s+/g, '-')}-${timestamp}@kpd.internal`
+      const randomBytes = new Uint8Array(32)
+      crypto.getRandomValues(randomBytes)
+      const techPassword = Array.from(randomBytes, b => b.toString(16).padStart(2, '0')).join('')
+
+      // 3. Зарегистрировать ребёнка в Supabase Auth
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+        email: techEmail,
+        password: techPassword,
+        options: {
+          data: { name: name.trim(), role: 'child' },
+        },
+      })
+
+      if (signUpError) {
+        throw new Error(translateSupabaseError(signUpError))
+      }
+
+      const user = authData?.user
+      if (!user?.id) {
+        throw new Error('Не удалось создать аккаунт. Попробуй снова.')
+      }
+
+      // 4. Дождаться создания профиля триггером (с повторными попытками)
+      let profileReady = false
+      for (let attempt = 0; attempt < 10; attempt++) {
+        await new Promise(resolve => setTimeout(resolve, 500))
+        const { data: checkProfile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', user.id)
+          .maybeSingle()
+        if (checkProfile?.id) {
+          profileReady = true
+          break
+        }
+      }
+
+      if (!profileReady) {
+        throw new Error('Профиль не был создан автоматически. Попробуй снова.')
+      }
+
+      // 5. Привязать ребёнка к семье
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ family_id: family.id })
+        .eq('id', user.id)
+
+      if (updateError) {
+        throw new Error(translateSupabaseError(updateError))
+      }
+
+      // 6. Перенаправить на главную
+      navigate('/app/home')
     } catch (err) {
       console.error('Register child error', err)
       setError(err.message || 'Ошибка регистрации. Попробуй снова.')
@@ -60,7 +122,14 @@ export default function RegisterChildPage() {
         <button
           type="button"
           onClick={() => navigate('/register')}
-          style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', marginBottom: 16, padding: 0 }}
+          style={{
+            background: 'none',
+            border: 'none',
+            fontSize: 24,
+            cursor: 'pointer',
+            marginBottom: 16,
+            padding: 0,
+          }}
         >
           ←
         </button>
@@ -69,74 +138,42 @@ export default function RegisterChildPage() {
           <div style={{ fontSize: 56, marginBottom: 8 }}>👦</div>
           <h1>Регистрация ребёнка</h1>
           <p style={{ color: 'var(--text-secondary)', marginTop: 8 }}>
-            После регистрации введи код семьи от взрослого
+            Введи своё имя и код от взрослого
           </p>
         </div>
 
         <form onSubmit={handleSubmit} noValidate>
           <div style={{ marginBottom: 16 }}>
-            <label className="label" style={{ display: 'block', marginBottom: 6 }}>Имя</label>
+            <label className="label" style={{ display: 'block', marginBottom: 6 }}>
+              Как тебя зовут?
+            </label>
             <input
               type="text"
               className="input"
-              placeholder="Как тебя зовут?"
+              placeholder="Например: Саша"
               value={name}
-              onChange={e => setName(e.target.value)}
+              onChange={(e) => setName(e.target.value)}
               required
-              autoComplete="name"
               autoFocus
             />
           </div>
 
-          <div style={{ marginBottom: 16 }}>
-            <label className="label" style={{ display: 'block', marginBottom: 6 }}>Email</label>
-            <input
-              type="email"
-              className="input"
-              placeholder="твой@email.com"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-            />
-          </div>
-
           <div style={{ marginBottom: 24 }}>
-            <label className="label" style={{ display: 'block', marginBottom: 6 }}>Пароль</label>
-            <div style={{ position: 'relative' }}>
-              <input
-                type={showPassword ? 'text' : 'password'}
-                className="input"
-                placeholder="Минимум 6 символов"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                required
-                minLength={6}
-                autoComplete="new-password"
-                style={{ paddingRight: 40 }}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                style={{
-                  position: 'absolute',
-                  right: 10,
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: 20,
-                }}
-              >
-                {showPassword ? '🙈' : '👁️'}
-              </button>
-            </div>
-            {password && password.length < 6 && (
-              <p style={{ fontSize: 12, color: 'var(--danger)', marginTop: 4 }}>
-                Ещё {6 - password.length} символов
-              </p>
-            )}
+            <label className="label" style={{ display: 'block', marginBottom: 6 }}>
+              Код семьи
+            </label>
+            <input
+              type="text"
+              className="input"
+              placeholder="KPD-XXXX"
+              value={inviteCode}
+              onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+              required
+              style={{ textTransform: 'uppercase' }}
+            />
+            <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>
+              Попроси код у мамы или папы
+            </p>
           </div>
 
           {error && (
@@ -155,13 +192,25 @@ export default function RegisterChildPage() {
             </div>
           )}
 
-          <button type="submit" className="btn-primary" disabled={loading} style={{ width: '100%' }}>
-            {loading ? '⏳ Создаём аккаунт...' : 'Зарегистрироваться'}
+          <button
+            type="submit"
+            className="btn-primary"
+            disabled={loading}
+            style={{ width: '100%' }}
+          >
+            {loading ? '⏳ Присоединяюсь...' : 'Присоединиться к семье'}
           </button>
         </form>
 
-        <p style={{ textAlign: 'center', marginTop: 24, color: 'var(--text-secondary)', fontSize: 14 }}>
-          Уже есть аккаунт?{' '}
+        <p
+          style={{
+            textAlign: 'center',
+            marginTop: 24,
+            color: 'var(--text-secondary)',
+            fontSize: 14,
+          }}
+        >
+          Уже зарегистрирован?{' '}
           <Link to="/login" style={{ color: 'var(--secondary)', fontWeight: 700 }}>
             Войти
           </Link>
@@ -170,3 +219,4 @@ export default function RegisterChildPage() {
     </div>
   )
 }
+
