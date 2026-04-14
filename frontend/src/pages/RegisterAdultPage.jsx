@@ -10,6 +10,7 @@ export default function RegisterAdultPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
 
   function validateForm() {
     if (!name.trim()) {
@@ -34,8 +35,8 @@ export default function RegisterAdultPage() {
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
+    setSuccess('')
 
-    // Валидация перед отправкой
     if (!validateForm()) {
       return
     }
@@ -44,7 +45,8 @@ export default function RegisterAdultPage() {
 
     try {
       await register({ name: name.trim(), email: email.trim(), password, role: 'adult' })
-      navigate('/app/setup-family')
+      setSuccess('✅ Аккаунт создан! Переходим к настройке семьи...')
+      setTimeout(() => navigate('/app/setup-family'), 1500)
     } catch (err) {
       console.error('Register adult error', err)
       setError(err.message || 'Ошибка регистрации. Попробуй снова.')
@@ -93,6 +95,7 @@ export default function RegisterAdultPage() {
               required
               autoComplete="name"
               autoFocus
+              disabled={loading}
             />
           </div>
 
@@ -108,6 +111,7 @@ export default function RegisterAdultPage() {
               onChange={(e) => setEmail(e.target.value)}
               required
               autoComplete="email"
+              disabled={loading}
             />
           </div>
 
@@ -126,10 +130,12 @@ export default function RegisterAdultPage() {
                 minLength={6}
                 autoComplete="new-password"
                 style={{ paddingRight: 40 }}
+                disabled={loading}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
+                disabled={loading}
                 style={{
                   position: 'absolute',
                   right: 10,
@@ -164,6 +170,22 @@ export default function RegisterAdultPage() {
               }}
             >
               {error}
+            </div>
+          )}
+
+          {success && (
+            <div
+              style={{
+                color: '#22c55e',
+                marginBottom: 16,
+                fontSize: 14,
+                textAlign: 'center',
+                padding: 12,
+                background: 'rgba(34, 197, 94, 0.1)',
+                borderRadius: 8,
+              }}
+            >
+              {success}
             </div>
           )}
 

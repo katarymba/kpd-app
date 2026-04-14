@@ -8,50 +8,66 @@ export function useAuth() {
 
   async function loadProfile(userId) {
     console.log('loadProfile for', userId)
-    setLoading(true)
 
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle()
+    const MAX_ATTEMPTS = 3
 
-      if (error && error.code !== 'PGRST116') {
-        console.error('loadProfile error', error)
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .maybeSingle()
+
+        if (error && error.code !== 'PGRST116') {
+          console.error(`loadProfile attempt ${attempt} error`, error)
+          if (attempt < MAX_ATTEMPTS) {
+            await new Promise(resolve => setTimeout(resolve, 500 * attempt))
+            continue
+          }
+          setProfile(null)
+          return
+        }
+
+        setProfile(data || null)
+        return
+      } catch (err) {
+        console.error(`loadProfile attempt ${attempt} exception`, err)
+        if (attempt < MAX_ATTEMPTS) {
+          await new Promise(resolve => setTimeout(resolve, 500 * attempt))
+          continue
+        }
+        setProfile(null)
       }
-
-      setProfile(data || null)
-    } catch (err) {
-      console.error('loadProfile exception', err)
-      setProfile(null)
-    } finally {
-      // КРИТИЧНО: всегда ставим loading = false
-      setLoading(false)
     }
   }
 
   useEffect(() => {
+    let cancelled = false
+
     // Начальная загрузка сессии
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (cancelled) return
       console.log('Initial session', session)
       if (session?.user) {
         setUser(session.user)
-        loadProfile(session.user.id)
+        await loadProfile(session.user.id)
       } else {
         setUser(null)
         setProfile(null)
-        setLoading(false) // КРИТИЧНО: если нет сессии — убираем loader
       }
+      if (!cancelled) setLoading(false)
     }).catch((err) => {
+      if (cancelled) return
       console.error('getSession error', err)
-      setLoading(false) // КРИТИЧНО: при ошибке тоже убираем loader
+      setLoading(false)
     })
 
     // Подписка на изменения авторизации
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (cancelled) return
       console.log('Auth state changed', event, session)
 
       if (session?.user) {
@@ -60,11 +76,14 @@ export function useAuth() {
       } else {
         setUser(null)
         setProfile(null)
-        setLoading(false)
       }
+      if (!cancelled) setLoading(false)
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      cancelled = true
+      subscription.unsubscribe()
+    }
   }, [])
 
   return { user, profile, loading }
