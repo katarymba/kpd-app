@@ -30,7 +30,8 @@ const TYPE_LABEL = {
 };
 
 export default function TaskCard({ task, onComplete, onConfirm, isParent = false }) {
-  const { id, name, category, points, status, type } = task;
+  const { id, name, title, category, points, status, type } = task;
+  const displayName = title || name;
   const meta = CATEGORY_META[category] || { emoji: '📌', className: '' };
   const isDone = status === 'done' || status === 'confirmed';
 
@@ -39,7 +40,7 @@ export default function TaskCard({ task, onComplete, onConfirm, isParent = false
       <div className="task-icon" aria-hidden="true">{meta.emoji}</div>
 
       <div className="task-info">
-        <div className="task-name">{name}</div>
+        <div className="task-name">{displayName}</div>
         <div className="task-meta">
           {TYPE_LABEL[type] || type}
           {status === 'done' && !isParent && ' · ожидает подтверждения'}
