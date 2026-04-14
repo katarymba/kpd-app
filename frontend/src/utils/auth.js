@@ -25,7 +25,8 @@ export async function register({ name, email, password, role }) {
       throw new Error('Не удалось создать пользователя. Попробуй другой email.')
     }
 
-    // 3. Ждём немного, чтобы Supabase обработал регистрацию
+    // 3. Небольшая пауза даёт Supabase время завершить создание пользователя
+    // и установить сессию перед тем как мы попытаемся создать профиль.
     await new Promise(resolve => setTimeout(resolve, 500))
 
     // 4. Проверяем сессию

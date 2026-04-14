@@ -43,6 +43,8 @@ export default function RegisterChildPage() {
     setLoading(true)
     try {
       await register({ name: name.trim(), email: email.trim(), password, role: 'child' })
+      // Дети вступают в уже существующую семью по коду от взрослого,
+      // поэтому перенаправляем на страницу присоединения к семье.
       navigate('/app/join-family')
     } catch (err) {
       console.error('Register child error', err)
