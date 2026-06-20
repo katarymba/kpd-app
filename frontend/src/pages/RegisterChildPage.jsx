@@ -3,6 +3,24 @@ import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../utils/supabase'
 import { translateSupabaseError } from '../utils/errorMessages'
 
+function buildTechLogin(name) {
+  const baseSlug = name
+    .trim()
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'child'
+
+  const timestamp = Date.now()
+  const techEmail = `${baseSlug}-${timestamp}@kpd.internal`
+  const randomBytes = new Uint8Array(32)
+  crypto.getRandomValues(randomBytes)
+  const techPassword = Array.from(randomBytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
+
+  return { techEmail, techPassword }
+}
+
 export default function RegisterChildPage() {
   const navigate = useNavigate()
   const [name, setName] = useState('')
@@ -41,25 +59,23 @@ export default function RegisterChildPage() {
     setLoading(true)
 
     try {
-      // 1. Проверить что семья существует
-      const { data: family, error: familyError } = await supabase
-        .from('families')
-        .select('id, name')
-        .eq('invite_code', inviteCode.trim().toUpperCase())
-        .single()
+      const normalizedInviteCode = inviteCode.trim().toUpperCase()
 
-      if (familyError || !family) {
+      const { data: familyRows, error: familyError } = await supabase.rpc('get_family_by_invite_code', {
+        p_invite_code: normalizedInviteCode,
+      })
+
+      if (familyError) {
+        throw new Error(translateSupabaseError(familyError))
+      }
+
+      const family = familyRows?.[0]
+      if (!family?.id) {
         throw new Error('🔍 Семья с таким кодом не найдена. Проверь код.')
       }
 
-      // 2. Создать технический email и безопасный пароль
-      const timestamp = Date.now()
-      const techEmail = `${name.trim().toLowerCase().replace(/\s+/g, '-')}-${timestamp}@kpd.internal`
-      const randomBytes = new Uint8Array(32)
-      crypto.getRandomValues(randomBytes)
-      const techPassword = Array.from(randomBytes, b => b.toString(16).padStart(2, '0')).join('')
+      const { techEmail, techPassword } = buildTechLogin(name)
 
-      // 3. Зарегистрировать ребёнка в Supabase Auth
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: techEmail,
         password: techPassword,
@@ -77,36 +93,26 @@ export default function RegisterChildPage() {
         throw new Error('Не удалось создать аккаунт. Попробуй снова.')
       }
 
-      // 4. Дождаться создания профиля триггером (с повторными попытками)
-      let profileReady = false
-      for (let attempt = 0; attempt < 10; attempt++) {
-        await new Promise(resolve => setTimeout(resolve, 500))
-        const { data: checkProfile } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('id', user.id)
-          .maybeSingle()
-        if (checkProfile?.id) {
-          profileReady = true
-          break
-        }
+      const { error: completeRegistrationError } = await supabase.rpc('complete_child_registration', {
+        p_user_id: user.id,
+        p_family_id: family.id,
+        p_tech_email: techEmail,
+        p_tech_password: techPassword,
+      })
+
+      if (completeRegistrationError) {
+        throw new Error(translateSupabaseError(completeRegistrationError))
       }
 
-      if (!profileReady) {
-        throw new Error('Профиль не был создан автоматически. Попробуй снова.')
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: techEmail,
+        password: techPassword,
+      })
+
+      if (signInError) {
+        throw new Error(translateSupabaseError(signInError))
       }
 
-      // 5. Привязать ребёнка к семье
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ family_id: family.id })
-        .eq('id', user.id)
-
-      if (updateError) {
-        throw new Error(translateSupabaseError(updateError))
-      }
-
-      // 6. Перенаправить на главную
       navigate('/app/home')
     } catch (err) {
       console.error('Register child error', err)
@@ -117,39 +123,24 @@ export default function RegisterChildPage() {
   }
 
   return (
-    <div className="app-container">
-      <div className="page" style={{ paddingTop: 40 }}>
-        <button
-          type="button"
-          onClick={() => navigate('/register')}
-          style={{
-            background: 'none',
-            border: 'none',
-            fontSize: 24,
-            cursor: 'pointer',
-            marginBottom: 16,
-            padding: 0,
-          }}
-        >
+    <div className="app-container auth-page">
+      <div className="auth-surface">
+        <button type="button" className="auth-back" onClick={() => navigate('/register')}>
           ←
         </button>
 
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{ fontSize: 56, marginBottom: 8 }}>👦</div>
+        <div className="auth-header auth-header-left">
+          <div className="auth-hero">👦</div>
           <h1>Регистрация ребёнка</h1>
-          <p style={{ color: 'var(--text-secondary)', marginTop: 8 }}>
-            Введи своё имя и код от взрослого
-          </p>
+          <p className="auth-subtitle">Введи своё имя и семейный код от взрослого.</p>
         </div>
 
         <form onSubmit={handleSubmit} noValidate>
-          <div style={{ marginBottom: 16 }}>
-            <label className="label" style={{ display: 'block', marginBottom: 6 }}>
-              Как тебя зовут?
-            </label>
+          <div className="form-group">
+            <label className="form-label">Как тебя зовут?</label>
             <input
               type="text"
-              className="input"
+              className="form-input"
               placeholder="Например: Саша"
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -158,60 +149,30 @@ export default function RegisterChildPage() {
             />
           </div>
 
-          <div style={{ marginBottom: 24 }}>
-            <label className="label" style={{ display: 'block', marginBottom: 6 }}>
-              Код семьи
-            </label>
+          <div className="form-group">
+            <label className="form-label">Код семьи</label>
             <input
               type="text"
-              className="input"
+              className="form-input"
               placeholder="KPD-XXXX"
               value={inviteCode}
               onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
               required
               style={{ textTransform: 'uppercase' }}
             />
-            <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>
-              Попроси код у мамы или папы
-            </p>
+            <p className="auth-helper">Попроси код у мамы или папы.</p>
           </div>
 
-          {error && (
-            <div
-              style={{
-                color: 'var(--danger)',
-                marginBottom: 16,
-                fontSize: 14,
-                textAlign: 'center',
-                padding: 12,
-                background: 'rgba(255, 59, 48, 0.1)',
-                borderRadius: 8,
-              }}
-            >
-              {error}
-            </div>
-          )}
+          {error && <div className="auth-status auth-status-error">{error}</div>}
 
-          <button
-            type="submit"
-            className="btn-primary"
-            disabled={loading}
-            style={{ width: '100%' }}
-          >
+          <button type="submit" className="btn-primary" disabled={loading}>
             {loading ? '⏳ Присоединяюсь...' : 'Присоединиться к семье'}
           </button>
         </form>
 
-        <p
-          style={{
-            textAlign: 'center',
-            marginTop: 24,
-            color: 'var(--text-secondary)',
-            fontSize: 14,
-          }}
-        >
+        <p className="auth-switch-link">
           Уже зарегистрирован?{' '}
-          <Link to="/login" style={{ color: 'var(--secondary)', fontWeight: 700 }}>
+          <Link to="/login">
             Войти
           </Link>
         </p>
@@ -219,4 +180,3 @@ export default function RegisterChildPage() {
     </div>
   )
 }
-

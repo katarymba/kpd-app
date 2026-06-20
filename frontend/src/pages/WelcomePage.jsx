@@ -1,31 +1,31 @@
 import { useNavigate } from 'react-router-dom'
+import { APP_VERSION } from '../version'
 
 export default function WelcomePage() {
   const navigate = useNavigate()
 
   return (
-    <div className="app-container">
-      <div className="page" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', textAlign: 'center' }}>
-        <div style={{ fontSize: 80, marginBottom: 16 }}>⭐</div>
-        <h1 style={{ marginBottom: 8 }}>КПД</h1>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: 40, fontSize: 16 }}>
-          Семейная система мотивации и заданий
-        </p>
+    <div className="welcome-shell">
+      <div className="welcome-gradient" />
+      <div className="welcome-page">
+        <div className="welcome-brand">
+          <div className="welcome-logo">КПД</div>
+          <h1 className="welcome-title">Семейный ритм без хаоса</h1>
+          <p className="welcome-subtitle">
+            Задания, баллы и награды — в одном спокойном и современном пространстве.
+          </p>
+        </div>
 
-        <button
-          className="btn-primary"
-          style={{ marginBottom: 12 }}
-          onClick={() => navigate('/login')}
-        >
-          Войти
-        </button>
+        <div className="welcome-actions">
+          <button className="btn-primary" onClick={() => navigate('/login')}>
+            Войти
+          </button>
+          <button className="btn-secondary" onClick={() => navigate('/register')}>
+            Зарегистрироваться
+          </button>
+        </div>
 
-        <button
-          className="btn-secondary"
-          onClick={() => navigate('/register')}
-        >
-          Зарегистрироваться
-        </button>
+        <div className="welcome-footer">v{APP_VERSION}</div>
       </div>
     </div>
   )
