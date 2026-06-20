@@ -27,10 +27,19 @@ export async function register({ name, email, password, role }) {
     // Даём время post-signup триггерам в auth.users выставить confirmed_at/email_confirmed_at.
     await new Promise(resolve => setTimeout(resolve, 800))
 
-    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    let signInData = null
+    let signInError = null
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+      signInData = data
+      signInError = error
+
+      if (!signInError) break
+      if (attempt < 2) {
+        await new Promise(resolve => setTimeout(resolve, 400))
+      }
+    }
 
     const { data: sessionData } = await supabase.auth.getSession()
     const sessionUser = sessionData?.session?.user

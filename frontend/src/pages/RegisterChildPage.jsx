@@ -98,12 +98,21 @@ export default function RegisterChildPage() {
       // Небольшая пауза нужна, чтобы auth.users и триггеры успели завершить регистрацию до RPC.
       await new Promise(resolve => setTimeout(resolve, 1000))
 
-      const { error: completeRegistrationError } = await supabase.rpc('complete_child_registration', {
-        p_user_id: user.id,
-        p_family_id: family.id,
-        p_tech_email: techEmail,
-        p_tech_password: techPassword,
-      })
+      let completeRegistrationError = null
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        const { error } = await supabase.rpc('complete_child_registration', {
+          p_user_id: user.id,
+          p_family_id: family.id,
+          p_tech_email: techEmail,
+          p_tech_password: techPassword,
+        })
+        completeRegistrationError = error
+
+        if (!completeRegistrationError) break
+        if (attempt < 2) {
+          await new Promise(resolve => setTimeout(resolve, 400))
+        }
+      }
 
       if (completeRegistrationError) {
         const { data: existingProfile, error: profileLookupError } = await supabase
