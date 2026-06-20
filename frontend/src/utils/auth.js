@@ -2,8 +2,8 @@ import { supabase } from './supabase'
 import { translateSupabaseError } from './errorMessages'
 
 const SIGNUP_TRIGGER_DELAY_MS = 800
-const SIGNIN_RETRY_DELAY_MS = 400
-const SIGNIN_MAX_ATTEMPTS = 3
+const SIGN_IN_RETRY_DELAY_MS = 400
+const SIGN_IN_MAX_ATTEMPTS = 3
 
 /**
  * Регистрация пользователя.
@@ -34,14 +34,14 @@ export async function register({ name, email, password, role }) {
     let signInData = null
     let signInError = null
 
-    for (let attempt = 0; attempt < SIGNIN_MAX_ATTEMPTS; attempt += 1) {
+    for (let attempt = 0; attempt < SIGN_IN_MAX_ATTEMPTS; attempt += 1) {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password })
       signInData = data
       signInError = error
 
       if (!signInError) break
-      if (attempt < SIGNIN_MAX_ATTEMPTS - 1) {
-        await new Promise(resolve => setTimeout(resolve, SIGNIN_RETRY_DELAY_MS))
+      if (attempt < SIGN_IN_MAX_ATTEMPTS - 1) {
+        await new Promise(resolve => setTimeout(resolve, SIGN_IN_RETRY_DELAY_MS))
       }
     }
 
