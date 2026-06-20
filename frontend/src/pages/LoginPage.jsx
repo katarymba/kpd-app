@@ -96,7 +96,7 @@ export default function LoginPage() {
 
       const credentials = data?.[0]
       if (!credentials?.tech_email || !credentials?.tech_password) {
-        throw new Error('Для этого аккаунта не настроен вход. Попроси взрослого зарегистрировать ребёнка заново.')
+        throw new Error('Технические данные для входа не найдены. Обратись к взрослому для настройки доступа.')
       }
 
       const { error: signInError } = await supabase.auth.signInWithPassword({
@@ -190,7 +190,6 @@ export default function LoginPage() {
                   className="auth-password-toggle"
                   onClick={() => setShowPassword(!showPassword)}
                   aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
-                  aria-pressed={showPassword}
                 >
                   {showPassword ? '🙈' : '👁️'}
                 </button>
