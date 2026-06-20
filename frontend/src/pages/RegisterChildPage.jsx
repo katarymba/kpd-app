@@ -95,6 +95,7 @@ export default function RegisterChildPage() {
         throw new Error('Не удалось создать аккаунт. Попробуй снова.')
       }
 
+      // Небольшая пауза нужна, чтобы auth.users и триггеры успели завершить регистрацию до RPC.
       await new Promise(resolve => setTimeout(resolve, 1000))
 
       const { error: completeRegistrationError } = await supabase.rpc('complete_child_registration', {

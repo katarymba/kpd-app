@@ -24,6 +24,7 @@ export async function register({ name, email, password, role }) {
       throw new Error('Не удалось создать пользователя. Попробуй другой email.')
     }
 
+    // Даём время post-signup триггерам в auth.users выставить confirmed_at/email_confirmed_at.
     await new Promise(resolve => setTimeout(resolve, 800))
 
     const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
