@@ -3,6 +3,10 @@ import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../utils/supabase'
 import { translateSupabaseError } from '../utils/errorMessages'
 
+const SIGNUP_TRIGGER_DELAY_MS = 1000
+const COMPLETE_REGISTRATION_RETRY_DELAY_MS = 400
+const COMPLETE_REGISTRATION_MAX_ATTEMPTS = 3
+
 function buildTechLogin(name) {
   const baseSlug = name
     .trim()
@@ -96,10 +100,10 @@ export default function RegisterChildPage() {
       }
 
       // Небольшая пауза нужна, чтобы auth.users и триггеры успели завершить регистрацию до RPC.
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      await new Promise(resolve => setTimeout(resolve, SIGNUP_TRIGGER_DELAY_MS))
 
       let completeRegistrationError = null
-      for (let attempt = 0; attempt < 3; attempt += 1) {
+      for (let attempt = 0; attempt < COMPLETE_REGISTRATION_MAX_ATTEMPTS; attempt += 1) {
         const { error } = await supabase.rpc('complete_child_registration', {
           p_user_id: user.id,
           p_family_id: family.id,
@@ -109,8 +113,8 @@ export default function RegisterChildPage() {
         completeRegistrationError = error
 
         if (!completeRegistrationError) break
-        if (attempt < 2) {
-          await new Promise(resolve => setTimeout(resolve, 400))
+        if (attempt < COMPLETE_REGISTRATION_MAX_ATTEMPTS - 1) {
+          await new Promise(resolve => setTimeout(resolve, COMPLETE_REGISTRATION_RETRY_DELAY_MS))
         }
       }
 
