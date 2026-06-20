@@ -6,7 +6,6 @@ import { translateSupabaseError } from './errorMessages'
  */
 export async function register({ name, email, password, role }) {
   try {
-    // 1. Регистрируем пользователя
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
@@ -25,23 +24,17 @@ export async function register({ name, email, password, role }) {
       throw new Error('Не удалось создать пользователя. Попробуй другой email.')
     }
 
-    if (data?.session === null && user) {
-      return {
-        userId: user.id,
-        needsEmailConfirmation: true,
-      }
-    }
+    await new Promise(resolve => setTimeout(resolve, 800))
 
-    // 3. Небольшая пауза даёт Supabase время завершить создание пользователя
-    // и установить сессию перед тем как мы попытаемся создать профиль.
-    await new Promise(resolve => setTimeout(resolve, 500))
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
 
-    // 4. Проверяем сессию
     const { data: sessionData } = await supabase.auth.getSession()
     const sessionUser = sessionData?.session?.user
-    const userId = sessionUser?.id || user.id
+    const userId = signInData?.user?.id || sessionUser?.id || user.id
 
-    // 5. Создаём профиль (триггер должен создать автоматически, но на всякий случай проверяем)
     const { data: existingProfile } = await supabase
       .from('profiles')
       .select('id')
@@ -49,7 +42,6 @@ export async function register({ name, email, password, role }) {
       .maybeSingle()
 
     if (!existingProfile) {
-      // Пытаемся создать профиль вручную
       const { error: profileError } = await supabase
         .from('profiles')
         .insert({
@@ -60,15 +52,15 @@ export async function register({ name, email, password, role }) {
         })
 
       if (profileError) {
-        console.error('Profile creation error:', profileError)
         throw new Error(translateSupabaseError(profileError))
       }
     }
 
-    return {
-      userId,
-      needsEmailConfirmation: false,
+    if (signInError && !sessionUser) {
+      throw new Error(translateSupabaseError(signInError))
     }
+
+    return { userId }
   } catch (err) {
     // Если это уже переведённая ошибка, пробрасываем как есть
     if (err.message && (err.message.includes('🔒') || err.message.includes('⏱️') || err.message.includes('📧'))) {

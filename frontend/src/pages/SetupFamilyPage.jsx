@@ -15,8 +15,13 @@ export default function SetupFamilyPage() {
 
   if (authLoading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <div style={{ fontSize: 48 }}>⭐</div>
+      <div className="app-container auth-page">
+        <div className="auth-surface">
+          <div className="auth-header">
+            <div className="auth-hero">⭐</div>
+            <p className="auth-subtitle">Загружаем профиль...</p>
+          </div>
+        </div>
       </div>
     )
   }
@@ -68,29 +73,22 @@ export default function SetupFamilyPage() {
 
   if (mode === 'create') {
     return (
-      <div className="app-container">
-        <div className="page" style={{ paddingTop: 40 }}>
-          <button
-            onClick={() => setMode(null)}
-            style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', marginBottom: 16, padding: 0 }}
-          >
-            ←
-          </button>
+      <div className="app-container auth-page auth-page-scroll">
+        <div className="auth-surface">
+          <button type="button" className="auth-back" onClick={() => setMode(null)}>←</button>
 
-          <div style={{ textAlign: 'center', marginBottom: 32 }}>
-            <div style={{ fontSize: 56, marginBottom: 8 }}>🏡</div>
+          <div className="auth-header">
+            <div className="auth-hero">🏡</div>
             <h1>Создать семью</h1>
-            <p style={{ color: 'var(--text-secondary)', marginTop: 8 }}>
-              После создания ты получишь код для других членов семьи
-            </p>
+            <p className="auth-subtitle">После создания ты получишь код для других членов семьи</p>
           </div>
 
-          <form onSubmit={handleCreate}>
-            <div style={{ marginBottom: 24 }}>
-              <label className="label" style={{ display: 'block', marginBottom: 6 }}>Название семьи</label>
+          <form onSubmit={handleCreate} noValidate>
+            <div className="form-group">
+              <label className="form-label">Название семьи</label>
               <input
                 type="text"
-                className="input"
+                className="form-input"
                 placeholder="Например: Семья Ивановых"
                 value={familyName}
                 onChange={e => setFamilyName(e.target.value)}
@@ -98,11 +96,7 @@ export default function SetupFamilyPage() {
               />
             </div>
 
-            {error && (
-              <div style={{ color: 'var(--danger)', marginBottom: 16, fontSize: 14, textAlign: 'center' }}>
-                {error}
-              </div>
-            )}
+            {error && <div className="auth-status auth-status-error">{error}</div>}
 
             <button type="submit" className="btn-primary" disabled={loading}>
               {loading ? 'Создаём...' : 'Создать семью'}
@@ -115,42 +109,30 @@ export default function SetupFamilyPage() {
 
   if (mode === 'join') {
     return (
-      <div className="app-container">
-        <div className="page" style={{ paddingTop: 40 }}>
-          <button
-            onClick={() => setMode(null)}
-            style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', marginBottom: 16, padding: 0 }}
-          >
-            ←
-          </button>
+      <div className="app-container auth-page auth-page-scroll">
+        <div className="auth-surface">
+          <button type="button" className="auth-back" onClick={() => setMode(null)}>←</button>
 
-          <div style={{ textAlign: 'center', marginBottom: 32 }}>
-            <div style={{ fontSize: 56, marginBottom: 8 }}>🔑</div>
+          <div className="auth-header">
+            <div className="auth-hero">🔑</div>
             <h1>Вступить в семью</h1>
-            <p style={{ color: 'var(--text-secondary)', marginTop: 8 }}>
-              Введи код, который дал тебе взрослый
-            </p>
+            <p className="auth-subtitle">Введи код, который дал тебе взрослый</p>
           </div>
 
-          <form onSubmit={handleJoin}>
-            <div style={{ marginBottom: 24 }}>
-              <label className="label" style={{ display: 'block', marginBottom: 6 }}>Код семьи</label>
+          <form onSubmit={handleJoin} noValidate>
+            <div className="form-group">
+              <label className="form-label">Код семьи</label>
               <input
                 type="text"
-                className="input"
+                className="form-input form-input-uppercase"
                 placeholder="KPD-XXXX"
                 value={inviteCode}
                 onChange={e => setInviteCode(e.target.value.toUpperCase())}
                 required
-                style={{ textTransform: 'uppercase', letterSpacing: 2, fontSize: 20, textAlign: 'center' }}
               />
             </div>
 
-            {error && (
-              <div style={{ color: 'var(--danger)', marginBottom: 16, fontSize: 14, textAlign: 'center' }}>
-                {error}
-              </div>
-            )}
+            {error && <div className="auth-status auth-status-error">{error}</div>}
 
             <button type="submit" className="btn-primary" disabled={loading}>
               {loading ? 'Проверяем...' : 'Вступить в семью'}
@@ -162,15 +144,17 @@ export default function SetupFamilyPage() {
   }
 
   return (
-    <div className="app-container">
-      <div className="page" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '100vh', textAlign: 'center' }}>
-        <div style={{ fontSize: 64, marginBottom: 16 }}>👨‍👩‍👧</div>
-        <h1 style={{ marginBottom: 8 }}>Привет, {profile?.name}! 👋</h1>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: 40, fontSize: 16 }}>
-          Ты ещё не в семье. Создай новую или вступи по коду.
-        </p>
+    <div className="app-container auth-page">
+      <div className="auth-surface">
+        <div className="auth-header">
+          <div className="auth-hero">👨‍👩‍👧</div>
+          <h1>Привет, {profile?.name}! 👋</h1>
+          <p className="auth-subtitle">Ты ещё не в семье. Создай новую или вступи по коду.</p>
+        </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {error && <div className="auth-status auth-status-error">{error}</div>}
+
+        <div className="welcome-actions">
           {isAdult && (
             <button className="btn-primary" onClick={() => setMode('create')}>
               🏡 Создать семью
@@ -179,11 +163,7 @@ export default function SetupFamilyPage() {
           <button className="btn-secondary" onClick={() => setMode('join')}>
             🔑 Вступить по коду
           </button>
-          <button
-            className="btn-ghost"
-            style={{ marginTop: 8 }}
-            onClick={handleLogout}
-          >
+          <button className="btn-ghost" onClick={handleLogout}>
             Выйти
           </button>
         </div>

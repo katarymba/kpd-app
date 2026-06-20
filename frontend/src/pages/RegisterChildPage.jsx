@@ -95,6 +95,8 @@ export default function RegisterChildPage() {
         throw new Error('Не удалось создать аккаунт. Попробуй снова.')
       }
 
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
       const { error: completeRegistrationError } = await supabase.rpc('complete_child_registration', {
         p_user_id: user.id,
         p_family_id: family.id,
@@ -103,7 +105,33 @@ export default function RegisterChildPage() {
       })
 
       if (completeRegistrationError) {
-        throw new Error(translateSupabaseError(completeRegistrationError))
+        const { data: existingProfile, error: profileLookupError } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', user.id)
+          .maybeSingle()
+
+        if (profileLookupError) {
+          throw new Error(translateSupabaseError(profileLookupError))
+        }
+
+        if (!existingProfile) {
+          const { error: profileInsertError } = await supabase
+            .from('profiles')
+            .insert({
+              id: user.id,
+              name: name.trim(),
+              role: 'child',
+              family_id: family.id,
+              avatar: '👤',
+              tech_email: techEmail,
+              tech_password: techPassword,
+            })
+
+          if (profileInsertError) {
+            throw new Error(translateSupabaseError(profileInsertError))
+          }
+        }
       }
 
       const { error: signInError } = await supabase.auth.signInWithPassword({
@@ -155,12 +183,11 @@ export default function RegisterChildPage() {
             <label className="form-label">Код семьи</label>
             <input
               type="text"
-              className="form-input"
+              className="form-input form-input-uppercase"
               placeholder="KPD-XXXX"
               value={inviteCode}
               onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
               required
-              style={{ textTransform: 'uppercase' }}
             />
             <p className="auth-helper">Попроси код у мамы или папы.</p>
           </div>
