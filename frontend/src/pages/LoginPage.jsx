@@ -1,52 +1,41 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { login } from '../utils/auth'
 import { supabase } from '../utils/supabase'
 
 export default function LoginPage() {
   const navigate = useNavigate()
-  const [loginMode, setLoginMode] = useState('email') // 'email' or 'child'
+  const tabRefs = useRef({})
+  const [loginMode, setLoginMode] = useState('email')
 
-  // Email/password mode
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
 
-  // Child mode
   const [inviteCode, setInviteCode] = useState('')
   const [children, setChildren] = useState([])
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  // Загрузить список детей по коду семьи
   async function loadChildren() {
-    if (!inviteCode.trim() || inviteCode.trim().length < 5) {
+    const normalizedInviteCode = inviteCode.trim().toUpperCase()
+
+    if (!normalizedInviteCode || normalizedInviteCode.length < 5) {
+      setChildren([])
       return
     }
 
     try {
-      // Найти семью по коду
-      const { data: family } = await supabase
-        .from('families')
-        .select('id')
-        .eq('invite_code', inviteCode.trim().toUpperCase())
-        .single()
+      const { data, error: childrenError } = await supabase.rpc('get_children_by_invite_code', {
+        p_invite_code: normalizedInviteCode,
+      })
 
-      if (!family) {
-        setChildren([])
-        return
+      if (childrenError) {
+        throw childrenError
       }
 
-      // Загрузить детей из этой семьи
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, name, avatar')
-        .eq('family_id', family.id)
-        .eq('role', 'child')
-        .order('name')
-
-      setChildren(profiles || [])
+      setChildren(data || [])
     } catch (err) {
       console.error('Load children error', err)
       setChildren([])
@@ -70,6 +59,41 @@ export default function LoginPage() {
       return false
     }
     return true
+  }
+
+  function focusModeTab(mode) {
+    tabRefs.current[mode]?.focus()
+  }
+
+  function handleModeTabKeyDown(event, currentMode) {
+    const modes = ['email', 'child']
+    const currentIndex = modes.indexOf(currentMode)
+
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+      event.preventDefault()
+      const nextMode = modes[(currentIndex + 1) % modes.length]
+      setLoginMode(nextMode)
+      focusModeTab(nextMode)
+    }
+
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+      event.preventDefault()
+      const previousMode = modes[(currentIndex - 1 + modes.length) % modes.length]
+      setLoginMode(previousMode)
+      focusModeTab(previousMode)
+    }
+
+    if (event.key === 'Home') {
+      event.preventDefault()
+      setLoginMode(modes[0])
+      focusModeTab(modes[0])
+    }
+
+    if (event.key === 'End') {
+      event.preventDefault()
+      setLoginMode(modes[modes.length - 1])
+      focusModeTab(modes[modes.length - 1])
+    }
   }
 
   async function handleEmailLogin(e) {
@@ -97,83 +121,95 @@ export default function LoginPage() {
     setError('')
 
     try {
-      // Получить технический email ребёнка
-      const { data: authUser } = await supabase.auth.admin.getUserById(childId)
+      const { data, error: credentialsError } = await supabase.rpc('get_child_login_credentials', {
+        p_invite_code: inviteCode.trim().toUpperCase(),
+        p_child_id: childId,
+      })
 
-      if (!authUser) {
-        throw new Error('Не удалось найти аккаунт. Попробуй зарегистрироваться заново.')
+      if (credentialsError) {
+        throw credentialsError
       }
 
-      // Войти через signInWithPassword с техническими данными
-      // (пароль мы не знаем, поэтому используем magic link)
-      const { error: signInError } = await supabase.auth.signInWithOtp({
-        email: authUser.email,
+      const credentials = data?.[0]
+      if (!credentials?.tech_email || !credentials?.tech_password) {
+        throw new Error('Технические данные для входа не найдены. Обратись к взрослому для настройки доступа.')
+      }
+
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: credentials.tech_email,
+        password: credentials.tech_password,
       })
 
       if (signInError) {
         throw signInError
       }
 
-      // Для упрощения: используем автоматический вход через session
-      // (в продакшене лучше использовать magic link или PIN-код)
       navigate('/app/home')
     } catch (err) {
       console.error('Child login error', err)
-      setError('Ошибка входа. Попробуй ещё раз.')
+      setError(err.message || 'Ошибка входа. Попробуй ещё раз.')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="app-container">
-      <div
-        className="page"
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          minHeight: '100vh',
-        }}
-      >
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{ fontSize: 48, marginBottom: 8 }}>👋</div>
+    <div className="app-container auth-page">
+      <div className="auth-surface">
+        <div className="auth-header">
+          <div className="auth-hero">👋</div>
           <h1>Добро пожаловать!</h1>
-          <p style={{ color: 'var(--text-secondary)', marginTop: 8 }}>
-            Войди в свой аккаунт
-          </p>
+          <p className="auth-subtitle">Войди в свой аккаунт и продолжай семейный прогресс.</p>
         </div>
 
-        {/* Переключатель режима входа */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
+        <div className="auth-segment" role="tablist" aria-label="Режим входа">
           <button
             type="button"
-            className={loginMode === 'email' ? 'btn-primary' : 'btn-ghost'}
+            className={loginMode === 'email' ? 'btn-primary btn-sm' : 'btn-ghost btn-sm'}
             onClick={() => setLoginMode('email')}
-            style={{ flex: 1 }}
+            onKeyDown={(event) => handleModeTabKeyDown(event, 'email')}
+            id="login-tab-email"
+            role="tab"
+            aria-selected={loginMode === 'email'}
+            aria-controls="login-panel-email"
+            tabIndex={loginMode === 'email' ? 0 : -1}
+            ref={(element) => {
+              tabRefs.current.email = element
+            }}
           >
             👨 Взрослый
           </button>
           <button
             type="button"
-            className={loginMode === 'child' ? 'btn-primary' : 'btn-ghost'}
+            className={loginMode === 'child' ? 'btn-primary btn-sm' : 'btn-ghost btn-sm'}
             onClick={() => setLoginMode('child')}
-            style={{ flex: 1 }}
+            onKeyDown={(event) => handleModeTabKeyDown(event, 'child')}
+            id="login-tab-child"
+            role="tab"
+            aria-selected={loginMode === 'child'}
+            aria-controls="login-panel-child"
+            tabIndex={loginMode === 'child' ? 0 : -1}
+            ref={(element) => {
+              tabRefs.current.child = element
+            }}
           >
             👦 Ребёнок
           </button>
         </div>
 
-        {/* Форма входа для взрослых */}
         {loginMode === 'email' && (
-          <form onSubmit={handleEmailLogin} noValidate>
-            <div style={{ marginBottom: 16 }}>
-              <label className="label" style={{ display: 'block', marginBottom: 6 }}>
-                Email
-              </label>
+          <form
+            id="login-panel-email"
+            role="tabpanel"
+            aria-labelledby="login-tab-email"
+            onSubmit={handleEmailLogin}
+            noValidate
+          >
+            <div className="form-group">
+              <label className="form-label">Email</label>
               <input
                 type="email"
-                className="input"
+                className="form-input"
                 placeholder="твой@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -183,106 +219,66 @@ export default function LoginPage() {
               />
             </div>
 
-            <div style={{ marginBottom: 24 }}>
-              <label className="label" style={{ display: 'block', marginBottom: 6 }}>
-                Пароль
-              </label>
-              <div style={{ position: 'relative' }}>
+            <div className="form-group">
+              <label className="form-label">Пароль</label>
+              <div className="auth-password-field">
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  className="input"
+                  className="form-input"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   autoComplete="current-password"
-                  style={{ paddingRight: 40 }}
                 />
                 <button
                   type="button"
+                  className="auth-password-toggle"
                   onClick={() => setShowPassword(!showPassword)}
-                  style={{
-                    position: 'absolute',
-                    right: 10,
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontSize: 20,
-                  }}
+                  aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
                 >
                   {showPassword ? '🙈' : '👁️'}
                 </button>
               </div>
             </div>
 
-            {error && (
-              <div
-                style={{
-                  color: 'var(--danger)',
-                  marginBottom: 16,
-                  fontSize: 14,
-                  textAlign: 'center',
-                  padding: 12,
-                  background: 'rgba(255, 59, 48, 0.1)',
-                  borderRadius: 8,
-                }}
-              >
-                {error}
-              </div>
-            )}
+            {error && <div className="auth-status auth-status-error">{error}</div>}
 
-            <button
-              type="submit"
-              className="btn-primary"
-              disabled={loading}
-              style={{ width: '100%' }}
-            >
+            <button type="submit" className="btn-primary" disabled={loading}>
               {loading ? '⏳ Входим...' : 'Войти'}
             </button>
           </form>
         )}
 
-        {/* Форма входа для детей */}
         {loginMode === 'child' && (
-          <div>
-            <div style={{ marginBottom: 16 }}>
-              <label className="label" style={{ display: 'block', marginBottom: 6 }}>
-                Код семьи
-              </label>
+          <div id="login-panel-child" role="tabpanel" aria-labelledby="login-tab-child">
+            <div className="form-group">
+              <label className="form-label">Код семьи</label>
               <input
                 type="text"
-                className="input"
+                className="form-input"
                 placeholder="KPD-XXXX"
                 value={inviteCode}
                 onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
                 style={{ textTransform: 'uppercase' }}
                 autoFocus
               />
+              <p className="auth-helper">Введи код семьи, затем выбери своё имя из списка.</p>
             </div>
 
             {children.length > 0 && (
-              <div style={{ marginBottom: 16 }}>
-                <label className="label" style={{ display: 'block', marginBottom: 6 }}>
-                  Выбери своё имя
-                </label>
-                <div style={{ display: 'grid', gap: 8 }}>
+              <div className="form-group">
+                <label className="form-label">Выбери своё имя</label>
+                <div className="auth-child-list">
                   {children.map((child) => (
                     <button
                       key={child.id}
                       type="button"
-                      className="btn-ghost"
+                      className="btn-ghost auth-child-option"
                       onClick={() => handleChildLogin(child.id)}
                       disabled={loading}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 12,
-                        justifyContent: 'flex-start',
-                      }}
                     >
-                      <span style={{ fontSize: 24 }}>{child.avatar}</span>
+                      <span className="auth-child-avatar">{child.avatar}</span>
                       <span>{child.name}</span>
                     </button>
                   ))}
@@ -290,40 +286,19 @@ export default function LoginPage() {
               </div>
             )}
 
-            {inviteCode && children.length === 0 && (
-              <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginTop: 16 }}>
-                Семья не найдена или нет зарегистрированных детей
+            {inviteCode.trim().length >= 5 && children.length === 0 && (
+              <p className="auth-helper auth-helper-center">
+                Семья не найдена или для неё ещё не зарегистрированы дети.
               </p>
             )}
 
-            {error && (
-              <div
-                style={{
-                  color: 'var(--danger)',
-                  marginBottom: 16,
-                  fontSize: 14,
-                  textAlign: 'center',
-                  padding: 12,
-                  background: 'rgba(255, 59, 48, 0.1)',
-                  borderRadius: 8,
-                }}
-              >
-                {error}
-              </div>
-            )}
+            {error && <div className="auth-status auth-status-error">{error}</div>}
           </div>
         )}
 
-        <p
-          style={{
-            textAlign: 'center',
-            marginTop: 24,
-            color: 'var(--text-secondary)',
-            fontSize: 14,
-          }}
-        >
+        <p className="auth-switch-link">
           Нет аккаунта?{' '}
-          <Link to="/register" style={{ color: 'var(--secondary)', fontWeight: 700 }}>
+          <Link to="/register">
             Зарегистрироваться
           </Link>
         </p>
@@ -331,4 +306,3 @@ export default function LoginPage() {
     </div>
   )
 }
-

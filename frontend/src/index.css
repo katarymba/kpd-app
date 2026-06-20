@@ -1,37 +1,29 @@
 /* ============================================================
-   КПД Design System — Duolingo Style
+   КПД Design System — Modern Minimal
    Light theme · Mobile-first · Nunito font
    ============================================================ */
 
 /* ── CSS Variables ─────────────────────────────────────────── */
 :root {
-  /* Backgrounds */
-  --bg:           #FFFFFF;
-  --bg-secondary: #F7F7F7;
-  --bg-card:      #FFFFFF;
-
-  /* Primary palette — Duolingo-inspired */
-  --primary:      #58CC02;
-  --primary-dark: #46A302;
-  --secondary:    #1CB0F6;
-  --secondary-dark: #0A91D1;
-  --danger:       #FF4B4B;
-  --warning:      #FF9600;
-  --accent:       #CE82FF;
+  /* Основные кнопки с белым текстом требуют проверки контраста при будущих изменениях палитры. */
+  --primary: #6C63FF;
+  --primary-dark: #5A52D5;
+  --secondary: #10B981;
+  --secondary-dark: #059669;
+  --accent: #F59E0B;
+  --danger: #EF4444;
+  --warning: #F59E0B;
+  --bg: #FAFAFA;
+  --bg-secondary: #F3F4F6;
+  --bg-card: #FFFFFF;
+  --text-primary: #111827;
+  --text-secondary: #6B7280;
+  --text-light: #9CA3AF;
+  --border: #E5E7EB;
+  --border-card: #E5E7EB;
+  --shadow-btn: 0 2px 8px rgba(108, 99, 255, 0.3);
+  --shadow-card: 0 1px 4px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
   --gold:         #FFD900;
-
-  /* Text */
-  --text-primary:   #3C3C3C;
-  --text-secondary: #777777;
-  --text-light:     #AFAFAF;
-
-  /* Borders */
-  --border:       #E5E5E5;
-  --border-card:  #E5E5E5;
-
-  /* Shadows */
-  --shadow-btn:   0 4px 0 #46A302;
-  --shadow-card:  0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 /* ── Reset ─────────────────────────────────────────────────── */
@@ -49,7 +41,9 @@ body {
   font-family: 'Nunito', sans-serif;
   font-size: 16px;
   line-height: 1.5;
-  background-color: var(--bg-secondary);
+  background:
+    radial-gradient(circle at top, rgba(108, 99, 255, 0.08), transparent 35%),
+    var(--bg-secondary);
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
 }
@@ -133,14 +127,14 @@ h4 { font-size: 16px; font-weight: 700; color: var(--text-primary); }
   background: var(--primary);
   color: white;
   border: none;
-  border-radius: 16px;
+  border-radius: 14px;
   padding: 16px 24px;
   font-size: 17px;
   font-weight: 800;
   width: 100%;
   box-shadow: var(--shadow-btn);
   cursor: pointer;
-  transition: all 0.1s;
+  transition: background-color 0.2s, opacity 0.2s, box-shadow 0.2s;
   min-height: 52px;
   gap: 8px;
 }
@@ -150,8 +144,7 @@ h4 { font-size: 16px; font-weight: 700; color: var(--text-primary); }
 }
 
 .btn-primary:active {
-  transform: translateY(2px);
-  box-shadow: 0 2px 0 var(--primary-dark);
+  opacity: 0.92;
 }
 
 .btn-secondary {
@@ -161,14 +154,14 @@ h4 { font-size: 16px; font-weight: 700; color: var(--text-primary); }
   background: var(--secondary);
   color: white;
   border: none;
-  border-radius: 16px;
+  border-radius: 14px;
   padding: 16px 24px;
   font-size: 17px;
   font-weight: 800;
   width: 100%;
-  box-shadow: 0 4px 0 var(--secondary-dark);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.24);
   cursor: pointer;
-  transition: all 0.1s;
+  transition: background-color 0.2s, opacity 0.2s, box-shadow 0.2s;
   min-height: 52px;
   gap: 8px;
 }
@@ -178,8 +171,7 @@ h4 { font-size: 16px; font-weight: 700; color: var(--text-primary); }
 }
 
 .btn-secondary:active {
-  transform: translateY(2px);
-  box-shadow: 0 2px 0 var(--secondary-dark);
+  opacity: 0.92;
 }
 
 .btn-ghost {
@@ -187,22 +179,23 @@ h4 { font-size: 16px; font-weight: 700; color: var(--text-primary); }
   align-items: center;
   justify-content: center;
   background: transparent;
-  border: 2.5px solid var(--border);
+  border: 1px solid var(--border);
   color: var(--text-primary);
-  border-radius: 16px;
+  border-radius: 14px;
   padding: 14px 24px;
   font-size: 16px;
   font-weight: 700;
   width: 100%;
   cursor: pointer;
-  transition: all 0.1s;
+  transition: border-color 0.2s, background-color 0.2s, opacity 0.2s, box-shadow 0.2s;
   min-height: 52px;
   font-family: inherit;
   gap: 8px;
 }
 
 .btn-ghost:hover {
-  border-color: var(--text-secondary);
+  border-color: rgba(108, 99, 255, 0.25);
+  background: rgba(108, 99, 255, 0.04);
 }
 
 .btn-danger {
@@ -259,8 +252,8 @@ h4 { font-size: 16px; font-weight: 700; color: var(--text-primary); }
 /* ── Cards ──────────────────────────────────────────────────── */
 .card {
   background: var(--bg-card);
-  border: 2px solid var(--border-card);
-  border-radius: 16px;
+  border: 1px solid var(--border-card);
+  border-radius: 20px;
   padding: 16px;
   box-shadow: var(--shadow-card);
 }
@@ -308,8 +301,8 @@ h4 { font-size: 16px; font-weight: 700; color: var(--text-primary); }
   align-items: center;
   gap: 12px;
   padding: 14px 16px;
-  border-radius: 16px;
-  border: 2px solid var(--border);
+  border-radius: 18px;
+  border: 1px solid var(--border);
   background: white;
   margin-bottom: 8px;
   box-shadow: var(--shadow-card);
@@ -377,8 +370,8 @@ h4 { font-size: 16px; font-weight: 700; color: var(--text-primary); }
 /* ── Reward Card ─────────────────────────────────────────────── */
 .reward-card {
   background: white;
-  border: 2px solid var(--border);
-  border-radius: 20px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
   padding: 16px;
   display: flex;
   flex-direction: column;
@@ -633,7 +626,7 @@ h4 { font-size: 16px; font-weight: 700; color: var(--text-primary); }
 .input {
   width: 100%;
   padding: 14px 16px;
-  border: 2.5px solid var(--border);
+  border: 1px solid var(--border);
   border-radius: 14px;
   font-size: 16px;
   font-family: 'Nunito', sans-serif;
@@ -692,44 +685,52 @@ h4 { font-size: 16px; font-weight: 700; color: var(--text-primary); }
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  align-items: center;
   justify-content: center;
-  padding: 32px 24px;
-  text-align: center;
-  background: linear-gradient(180deg, #f0fdf4 0%, #ffffff 60%);
+  gap: 32px;
+  padding: 40px 24px;
+  text-align: left;
+  width: 100%;
   max-width: 480px;
   margin: 0 auto;
+  position: relative;
+  z-index: 1;
 }
 
 .welcome-logo {
-  font-size: 72px;
-  margin-bottom: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 120px;
+  padding: 14px 20px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: white;
+  font-size: 40px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  backdrop-filter: blur(18px);
+  margin-bottom: 24px;
 }
 
 .welcome-title {
-  font-size: 48px;
+  font-size: 40px;
   font-weight: 900;
-  color: var(--primary);
-  line-height: 1;
-  margin-bottom: 8px;
+  color: white;
+  line-height: 1.05;
+  margin-bottom: 14px;
 }
 
 .welcome-subtitle {
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 700;
-  color: var(--text-secondary);
-  margin-bottom: 8px;
-}
-
-.welcome-tagline {
-  font-size: 15px;
-  color: var(--text-light);
-  margin-bottom: 48px;
+  color: rgba(255, 255, 255, 0.86);
+  margin-bottom: 0;
 }
 
 .welcome-actions {
   width: 100%;
-  max-width: 320px;
+  max-width: 100%;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -738,28 +739,62 @@ h4 { font-size: 16px; font-weight: 700; color: var(--text-primary); }
 /* ── Auth forms ──────────────────────────────────────────────── */
 .auth-page {
   min-height: 100vh;
-  padding: 24px 24px 40px;
+  padding: 24px 20px 40px;
   display: flex;
-  flex-direction: column;
-  max-width: 480px;
-  margin: 0 auto;
-  background: var(--bg);
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at top left, rgba(108, 99, 255, 0.08), transparent 38%),
+    radial-gradient(circle at bottom right, rgba(16, 185, 129, 0.08), transparent 32%),
+    var(--bg);
 }
 
 .auth-back {
   font-size: 24px;
-  background: none;
-  border: none;
+  background: rgba(17, 24, 39, 0.04);
+  border: 1px solid var(--border);
+  border-radius: 12px;
   cursor: pointer;
-  padding: 0;
-  margin-bottom: 32px;
+  padding: 10px 14px;
+  margin-bottom: 24px;
   width: fit-content;
 }
 
-.auth-title {
-  font-size: 26px;
-  font-weight: 900;
-  margin-bottom: 32px;
+.auth-surface {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  border-radius: 28px;
+  padding: 28px 20px;
+  box-shadow: 0 18px 50px rgba(17, 24, 39, 0.08);
+  backdrop-filter: blur(16px);
+}
+
+.auth-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.auth-header-left {
+  text-align: left;
+}
+
+.auth-hero {
+  font-size: 48px;
+  margin-bottom: 10px;
+}
+
+.auth-subtitle {
+  color: var(--text-secondary);
+  margin-top: 8px;
+  font-size: 15px;
+}
+
+.auth-segment {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 24px;
 }
 
 .form-group {
@@ -779,8 +814,8 @@ h4 { font-size: 16px; font-weight: 700; color: var(--text-primary); }
 .form-input {
   width: 100%;
   padding: 14px 16px;
-  border: 2.5px solid var(--border);
-  border-radius: 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
   font-size: 16px;
   font-family: 'Nunito', sans-serif;
   font-weight: 600;
@@ -788,11 +823,12 @@ h4 { font-size: 16px; font-weight: 700; color: var(--text-primary); }
   transition: border-color 0.2s;
   box-sizing: border-box;
   color: var(--text-primary);
-  background: white;
+  background: rgba(255, 255, 255, 0.92);
 }
 
 .form-input:focus {
   border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(108, 99, 255, 0.28);
 }
 
 .form-error {
@@ -800,6 +836,77 @@ h4 { font-size: 16px; font-weight: 700; color: var(--text-primary); }
   font-size: 13px;
   font-weight: 700;
   margin-top: 8px;
+}
+
+.auth-password-field {
+  position: relative;
+}
+
+.auth-password-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  font-size: 18px;
+  color: var(--text-secondary);
+}
+
+.auth-helper {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 8px;
+}
+
+.auth-helper-center {
+  text-align: center;
+}
+
+.auth-status {
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.auth-status-error {
+  color: var(--danger);
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.15);
+}
+
+.auth-status-success {
+  color: var(--secondary-dark);
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.18);
+}
+
+.auth-child-list {
+  display: grid;
+  gap: 10px;
+}
+
+.auth-child-option {
+  justify-content: flex-start;
+  padding: 14px 16px;
+}
+
+.auth-child-avatar {
+  font-size: 24px;
+}
+
+.auth-switch-link {
+  text-align: center;
+  margin-top: 24px;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.auth-switch-link a {
+  color: var(--primary);
+  font-weight: 800;
 }
 
 /* ── Role selection cards ────────────────────────────────────── */
@@ -812,23 +919,19 @@ h4 { font-size: 16px; font-weight: 700; color: var(--text-primary); }
 
 .role-card {
   background: white;
-  border: 2.5px solid var(--border);
+  border: 1px solid var(--border);
   border-radius: 20px;
   padding: 24px 16px;
   text-align: center;
   cursor: pointer;
   transition: all 0.15s;
-  box-shadow: 0 3px 0 var(--border);
+  box-shadow: var(--shadow-card);
   font-family: inherit;
-}
-
-.role-card:active {
-  transform: translateY(2px);
-  box-shadow: 0 1px 0 var(--border);
 }
 
 .role-card:hover {
   border-color: var(--primary);
+  box-shadow: 0 10px 24px rgba(108, 99, 255, 0.12);
 }
 
 .role-card .role-emoji {
@@ -869,4 +972,29 @@ h4 { font-size: 16px; font-weight: 700; color: var(--text-primary); }
   font-size: 13px;
   color: var(--text-secondary);
   margin-top: 8px;
+}
+
+.welcome-shell {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  background: linear-gradient(135deg, #5A52D5 0%, #6C63FF 44%, #10B981 100%);
+}
+
+.welcome-gradient {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.2), transparent 32%),
+    radial-gradient(circle at bottom right, rgba(255, 255, 255, 0.12), transparent 28%);
+}
+
+.welcome-brand {
+  max-width: 320px;
+}
+
+.welcome-footer {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 13px;
+  font-weight: 700;
 }

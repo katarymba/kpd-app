@@ -25,6 +25,13 @@ export async function register({ name, email, password, role }) {
       throw new Error('Не удалось создать пользователя. Попробуй другой email.')
     }
 
+    if (data?.session === null && user) {
+      return {
+        userId: user.id,
+        needsEmailConfirmation: true,
+      }
+    }
+
     // 3. Небольшая пауза даёт Supabase время завершить создание пользователя
     // и установить сессию перед тем как мы попытаемся создать профиль.
     await new Promise(resolve => setTimeout(resolve, 500))
@@ -58,7 +65,10 @@ export async function register({ name, email, password, role }) {
       }
     }
 
-    return { userId }
+    return {
+      userId,
+      needsEmailConfirmation: false,
+    }
   } catch (err) {
     // Если это уже переведённая ошибка, пробрасываем как есть
     if (err.message && (err.message.includes('🔒') || err.message.includes('⏱️') || err.message.includes('📧'))) {

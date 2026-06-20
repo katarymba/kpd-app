@@ -1,30 +1,90 @@
-# КПД (Коэффициент полезного действия)
+# КПД-app
 
-Gamification system for family task management with points, rewards and achievements.
+КПД-app — семейное приложение для мотивации детей: взрослые создают семью, назначают задания и награды, а дети выполняют задачи, копят баллы и следят за своим прогрессом.
 
-## 🚀 Tech Stack
-- **Backend:** FastAPI + PostgreSQL
-- **Web:** React + TypeScript + Tailwind CSS
-- **Mobile:** React Native + TypeScript
+## Версия
 
-## 📦 Project Structure
-- `/backend` - FastAPI backend
-- `/web` - React web application (responsive)
-- `/mobile` - React Native mobile app (iOS/Android)
-- `/shared` - Shared types and constants
+- Текущая версия: **1.0.0**
+- Дата сборки: **2026-06-20**
 
-## 🎯 Features
-- ✅ Family task management
-- 👍 Likes and reputation system
-- 📚 School grades tracking
-- ⚡ Double points (X2) bonus
-- 🛒 Reward shop
-- ���� Achievements
-- 💰 Points to money conversion
+## Технический стек
 
-## 🏃‍♂️ Quick Start
+- **Frontend:** React 19 + Vite
+- **Routing:** React Router
+- **Backend / Auth / DB:** Supabase
+- **Deploy:** Vercel
 
-Coming soon...
+## Что умеет приложение
 
-## 📚 Documentation
-See individual README files in each directory for detailed setup instructions.
+- регистрация взрослого и создание семьи;
+- регистрация ребёнка по семейному коду;
+- вход взрослого по email и паролю;
+- вход ребёнка по коду семьи и выбору профиля;
+- управление заданиями, баллами и наградами внутри семьи.
+
+## Локальный запуск
+
+### 1. Установить зависимости
+
+```bash
+cd frontend
+npm install
+```
+
+### 2. Настроить переменные окружения
+
+Создай файл `frontend/.env` на основе `frontend/.env.example` и укажи:
+
+```env
+VITE_SUPABASE_URL=...
+VITE_SUPABASE_ANON_KEY=...
+```
+
+### 3. Запустить приложение
+
+```bash
+cd frontend
+npm run dev
+```
+
+Приложение откроется через Vite dev server.
+
+## Доступные команды
+
+```bash
+cd frontend
+npm run dev
+npm run build
+npm run lint
+```
+
+## Структура проекта
+
+```text
+.
+├── frontend/                 # React + Vite приложение
+│   ├── src/
+│   │   ├── components/       # UI-компоненты
+│   │   ├── hooks/            # клиентские хуки
+│   │   ├── pages/            # страницы приложения
+│   │   ├── utils/            # auth, supabase, бизнес-утилиты
+│   │   └── version.js        # версия приложения
+│   └── package.json
+├── supabase/
+│   └── migrations/           # SQL-миграции схемы и RLS
+└── README.md
+```
+
+## Supabase
+
+Для корректной работы приложения нужно применить SQL-миграции из `supabase/migrations`, включая миграции для:
+
+- профилей пользователей;
+- семей и заданий;
+- RLS-политик;
+- технических учётных данных детей для входа.
+
+## Production
+
+- Production URL: https://kpd-app.vercel.app/
+- Рекомендуется проверить настройки Supabase Auth и применить актуальные миграции перед релизом.

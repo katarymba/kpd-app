@@ -10,6 +10,7 @@ export default function RegisterAdultPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [confirmationEmail, setConfirmationEmail] = useState('')
 
   function validateForm() {
     if (!name.trim()) {
@@ -35,7 +36,6 @@ export default function RegisterAdultPage() {
     e.preventDefault()
     setError('')
 
-    // Валидация перед отправкой
     if (!validateForm()) {
       return
     }
@@ -43,7 +43,13 @@ export default function RegisterAdultPage() {
     setLoading(true)
 
     try {
-      await register({ name: name.trim(), email: email.trim(), password, role: 'adult' })
+      const result = await register({ name: name.trim(), email: email.trim(), password, role: 'adult' })
+
+      if (result.needsEmailConfirmation) {
+        setConfirmationEmail(email.trim())
+        return
+      }
+
       navigate('/app/setup-family')
     } catch (err) {
       console.error('Register adult error', err)
@@ -54,142 +60,99 @@ export default function RegisterAdultPage() {
   }
 
   return (
-    <div className="app-container">
-      <div className="page" style={{ paddingTop: 40 }}>
-        <button
-          type="button"
-          onClick={() => navigate('/register')}
-          style={{
-            background: 'none',
-            border: 'none',
-            fontSize: 24,
-            cursor: 'pointer',
-            marginBottom: 16,
-            padding: 0,
-          }}
-        >
+    <div className="app-container auth-page">
+      <div className="auth-surface">
+        <button type="button" className="auth-back" onClick={() => navigate('/register')}>
           ←
         </button>
 
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{ fontSize: 56, marginBottom: 8 }}>👩</div>
+        <div className="auth-header auth-header-left">
+          <div className="auth-hero">👩</div>
           <h1>Регистрация взрослого</h1>
-          <p style={{ color: 'var(--text-secondary)', marginTop: 8 }}>
-            Ты будешь управлять семьёй и заданиями
-          </p>
+          <p className="auth-subtitle">Ты будешь управлять семьёй, заданиями и наградами.</p>
         </div>
 
-        <form onSubmit={handleSubmit} noValidate>
-          <div style={{ marginBottom: 16 }}>
-            <label className="label" style={{ display: 'block', marginBottom: 6 }}>
-              Имя
-            </label>
-            <input
-              type="text"
-              className="input"
-              placeholder="Как тебя зовут?"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              autoComplete="name"
-              autoFocus
-            />
-          </div>
+        {confirmationEmail ? (
+          <>
+            <div className="auth-status auth-status-success">
+              Мы отправили письмо на <strong>{confirmationEmail}</strong>. Подтверди email и затем войди.
+            </div>
+            <button type="button" className="btn-primary" onClick={() => navigate('/login')}>
+              Перейти ко входу
+            </button>
+          </>
+        ) : (
+          <>
+            <form onSubmit={handleSubmit} noValidate>
+              <div className="form-group">
+                <label className="form-label">Имя</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="Как тебя зовут?"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  autoComplete="name"
+                  autoFocus
+                />
+              </div>
 
-          <div style={{ marginBottom: 16 }}>
-            <label className="label" style={{ display: 'block', marginBottom: 6 }}>
-              Email
-            </label>
-            <input
-              type="email"
-              className="input"
-              placeholder="твой@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-            />
-          </div>
+              <div className="form-group">
+                <label className="form-label">Email</label>
+                <input
+                  type="email"
+                  className="form-input"
+                  placeholder="твой@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  autoComplete="email"
+                />
+              </div>
 
-          <div style={{ marginBottom: 24 }}>
-            <label className="label" style={{ display: 'block', marginBottom: 6 }}>
-              Пароль
-            </label>
-            <div style={{ position: 'relative' }}>
-              <input
-                type={showPassword ? 'text' : 'password'}
-                className="input"
-                placeholder="Минимум 6 символов"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-                autoComplete="new-password"
-                style={{ paddingRight: 40 }}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                style={{
-                  position: 'absolute',
-                  right: 10,
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: 20,
-                }}
-              >
-                {showPassword ? '🙈' : '👁️'}
+              <div className="form-group">
+                <label className="form-label">Пароль</label>
+                <div className="auth-password-field">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    className="form-input"
+                    placeholder="Минимум 6 символов"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    minLength={6}
+                    autoComplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    className="auth-password-toggle"
+                    onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
+                  >
+                    {showPassword ? '🙈' : '👁️'}
+                  </button>
+                </div>
+                {password && password.length < 6 && (
+                  <p className="auth-helper">Ещё {6 - password.length} символов</p>
+                )}
+              </div>
+
+              {error && <div className="auth-status auth-status-error">{error}</div>}
+
+              <button type="submit" className="btn-primary" disabled={loading}>
+                {loading ? '⏳ Создаём аккаунт...' : 'Зарегистрироваться'}
               </button>
-            </div>
-            {password && password.length < 6 && (
-              <p style={{ fontSize: 12, color: 'var(--danger)', marginTop: 4 }}>
-                Ещё {6 - password.length} символов
-              </p>
-            )}
-          </div>
+            </form>
 
-          {error && (
-            <div
-              style={{
-                color: 'var(--danger)',
-                marginBottom: 16,
-                fontSize: 14,
-                textAlign: 'center',
-                padding: 12,
-                background: 'rgba(255, 59, 48, 0.1)',
-                borderRadius: 8,
-              }}
-            >
-              {error}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            className="btn-primary"
-            disabled={loading}
-            style={{ width: '100%' }}
-          >
-            {loading ? '⏳ Создаём аккаунт...' : 'Зарегистрироваться'}
-          </button>
-        </form>
-
-        <p
-          style={{
-            textAlign: 'center',
-            marginTop: 24,
-            color: 'var(--text-secondary)',
-            fontSize: 14,
-          }}
-        >
-          Уже есть аккаунт?{' '}
-          <Link to="/login" style={{ color: 'var(--secondary)', fontWeight: 700 }}>
-            Войти
-          </Link>
-        </p>
+            <p className="auth-switch-link">
+              Уже есть аккаунт?{' '}
+              <Link to="/login">
+                Войти
+              </Link>
+            </p>
+          </>
+        )}
       </div>
     </div>
   )
