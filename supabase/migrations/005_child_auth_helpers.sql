@@ -6,6 +6,9 @@ ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS tech_email text,
   ADD COLUMN IF NOT EXISTS tech_password text;
 
+COMMENT ON COLUMN public.profiles.tech_password IS
+  'MVP: plaintext password for child technical login via invite code; replace with encrypted/token-based flow in production hardening.';
+
 CREATE UNIQUE INDEX IF NOT EXISTS profiles_tech_email_unique_idx
   ON public.profiles (tech_email)
   WHERE tech_email IS NOT NULL;

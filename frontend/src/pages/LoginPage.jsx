@@ -131,8 +131,10 @@ export default function LoginPage() {
             type="button"
             className={loginMode === 'email' ? 'btn-primary btn-sm' : 'btn-ghost btn-sm'}
             onClick={() => setLoginMode('email')}
+            id="login-tab-email"
             role="tab"
             aria-selected={loginMode === 'email'}
+            aria-controls="login-panel-email"
           >
             👨 Взрослый
           </button>
@@ -140,15 +142,23 @@ export default function LoginPage() {
             type="button"
             className={loginMode === 'child' ? 'btn-primary btn-sm' : 'btn-ghost btn-sm'}
             onClick={() => setLoginMode('child')}
+            id="login-tab-child"
             role="tab"
             aria-selected={loginMode === 'child'}
+            aria-controls="login-panel-child"
           >
             👦 Ребёнок
           </button>
         </div>
 
         {loginMode === 'email' && (
-          <form onSubmit={handleEmailLogin} noValidate>
+          <form
+            id="login-panel-email"
+            role="tabpanel"
+            aria-labelledby="login-tab-email"
+            onSubmit={handleEmailLogin}
+            noValidate
+          >
             <div className="form-group">
               <label className="form-label">Email</label>
               <input
@@ -180,6 +190,7 @@ export default function LoginPage() {
                   className="auth-password-toggle"
                   onClick={() => setShowPassword(!showPassword)}
                   aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
+                  aria-pressed={showPassword}
                 >
                   {showPassword ? '🙈' : '👁️'}
                 </button>
@@ -195,7 +206,7 @@ export default function LoginPage() {
         )}
 
         {loginMode === 'child' && (
-          <div>
+          <div id="login-panel-child" role="tabpanel" aria-labelledby="login-tab-child">
             <div className="form-group">
               <label className="form-label">Код семьи</label>
               <input

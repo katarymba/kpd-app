@@ -129,6 +129,7 @@ export default function RegisterAdultPage() {
                     className="auth-password-toggle"
                     onClick={() => setShowPassword(!showPassword)}
                     aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
+                    aria-pressed={showPassword}
                   >
                     {showPassword ? '🙈' : '👁️'}
                   </button>
