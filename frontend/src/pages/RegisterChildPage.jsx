@@ -8,7 +8,7 @@ function buildTechLogin(name) {
     .trim()
     .toLowerCase()
     .normalize('NFKD')
-    // Убираем combining marks, чтобы получить безопасный ASCII-slug для технического email.
+    // Убираем combining diacritical marks (Unicode U+0300–U+036F), чтобы получить безопасный ASCII-slug для технического email.
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '') || 'child'
@@ -17,6 +17,7 @@ function buildTechLogin(name) {
   const techEmail = `${baseSlug}-${timestamp}@kpd.internal`
   const randomBytes = new Uint8Array(32)
   crypto.getRandomValues(randomBytes)
+  // 32 случайных байта превращаются в 64-символьный hex-пароль для технического входа ребёнка.
   const techPassword = Array.from(randomBytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
 
   return { techEmail, techPassword }
