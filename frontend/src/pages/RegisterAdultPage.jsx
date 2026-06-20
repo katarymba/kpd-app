@@ -10,7 +10,6 @@ export default function RegisterAdultPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [confirmationEmail, setConfirmationEmail] = useState('')
 
   function validateForm() {
     if (!name.trim()) {
@@ -43,13 +42,7 @@ export default function RegisterAdultPage() {
     setLoading(true)
 
     try {
-      const result = await register({ name: name.trim(), email: email.trim(), password, role: 'adult' })
-
-      if (result.needsEmailConfirmation) {
-        setConfirmationEmail(email.trim())
-        return
-      }
-
+      await register({ name: name.trim(), email: email.trim(), password, role: 'adult' })
       navigate('/app/setup-family')
     } catch (err) {
       console.error('Register adult error', err)
@@ -72,87 +65,76 @@ export default function RegisterAdultPage() {
           <p className="auth-subtitle">Ты будешь управлять семьёй, заданиями и наградами.</p>
         </div>
 
-        {confirmationEmail ? (
-          <>
-            <div className="auth-status auth-status-success">
-              Мы отправили письмо на <strong>{confirmationEmail}</strong>. Подтверди email и затем войди.
+        <>
+          <form onSubmit={handleSubmit} noValidate>
+            <div className="form-group">
+              <label className="form-label">Имя</label>
+              <input
+                type="text"
+                className="form-input"
+                placeholder="Как тебя зовут?"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                autoComplete="name"
+                autoFocus
+              />
             </div>
-            <button type="button" className="btn-primary" onClick={() => navigate('/login')}>
-              Перейти ко входу
+
+            <div className="form-group">
+              <label className="form-label">Email</label>
+              <input
+                type="email"
+                className="form-input"
+                placeholder="твой@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="email"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Пароль</label>
+              <div className="auth-password-field">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  className="form-input"
+                  placeholder="Минимум 6 символов"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  className="auth-password-toggle"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
+                >
+                  {showPassword ? '🙈' : '👁️'}
+                </button>
+              </div>
+              {password && password.length < 6 && (
+                <p className="auth-helper">Ещё {6 - password.length} символов</p>
+              )}
+            </div>
+
+            {error && <div className="auth-status auth-status-error">{error}</div>}
+
+            <button type="submit" className="btn-primary" disabled={loading}>
+              {loading ? '⏳ Создаём аккаунт...' : 'Зарегистрироваться'}
             </button>
-          </>
-        ) : (
-          <>
-            <form onSubmit={handleSubmit} noValidate>
-              <div className="form-group">
-                <label className="form-label">Имя</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="Как тебя зовут?"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                  autoComplete="name"
-                  autoFocus
-                />
-              </div>
+          </form>
 
-              <div className="form-group">
-                <label className="form-label">Email</label>
-                <input
-                  type="email"
-                  className="form-input"
-                  placeholder="твой@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  autoComplete="email"
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Пароль</label>
-                <div className="auth-password-field">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    className="form-input"
-                    placeholder="Минимум 6 символов"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    minLength={6}
-                    autoComplete="new-password"
-                  />
-                  <button
-                    type="button"
-                    className="auth-password-toggle"
-                    onClick={() => setShowPassword(!showPassword)}
-                    aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
-                  >
-                    {showPassword ? '🙈' : '👁️'}
-                  </button>
-                </div>
-                {password && password.length < 6 && (
-                  <p className="auth-helper">Ещё {6 - password.length} символов</p>
-                )}
-              </div>
-
-              {error && <div className="auth-status auth-status-error">{error}</div>}
-
-              <button type="submit" className="btn-primary" disabled={loading}>
-                {loading ? '⏳ Создаём аккаунт...' : 'Зарегистрироваться'}
-              </button>
-            </form>
-
-            <p className="auth-switch-link">
-              Уже есть аккаунт?{' '}
-              <Link to="/login">
-                Войти
-              </Link>
-            </p>
-          </>
-        )}
+          <p className="auth-switch-link">
+            Уже есть аккаунт?{' '}
+            <Link to="/login">
+              Войти
+            </Link>
+          </p>
+        </>
       </div>
     </div>
   )

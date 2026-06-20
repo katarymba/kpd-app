@@ -1,12 +1,15 @@
 import { supabase } from './supabase'
 import { translateSupabaseError } from './errorMessages'
 
+const SIGNUP_TRIGGER_DELAY_MS = 800
+const SIGN_IN_RETRY_DELAY_MS = 400
+const SIGN_IN_MAX_ATTEMPTS = 3
+
 /**
  * Регистрация пользователя.
  */
 export async function register({ name, email, password, role }) {
   try {
-    // 1. Регистрируем пользователя
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
@@ -25,23 +28,27 @@ export async function register({ name, email, password, role }) {
       throw new Error('Не удалось создать пользователя. Попробуй другой email.')
     }
 
-    if (data?.session === null && user) {
-      return {
-        userId: user.id,
-        needsEmailConfirmation: true,
+    await new Promise(resolve => setTimeout(resolve, SIGNUP_TRIGGER_DELAY_MS))
+
+    let signInData = null
+    let signInError = null
+
+    for (let attempt = 0; attempt < SIGN_IN_MAX_ATTEMPTS; attempt += 1) {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+      signInData = data
+      signInError = error
+
+      if (!signInError) break
+      if (attempt < SIGN_IN_MAX_ATTEMPTS - 1) {
+        const retryDelay = SIGN_IN_RETRY_DELAY_MS * (2 ** attempt)
+        await new Promise(resolve => setTimeout(resolve, retryDelay))
       }
     }
 
-    // 3. Небольшая пауза даёт Supabase время завершить создание пользователя
-    // и установить сессию перед тем как мы попытаемся создать профиль.
-    await new Promise(resolve => setTimeout(resolve, 500))
-
-    // 4. Проверяем сессию
     const { data: sessionData } = await supabase.auth.getSession()
     const sessionUser = sessionData?.session?.user
-    const userId = sessionUser?.id || user.id
+    const userId = signInData?.user?.id || sessionUser?.id || user.id
 
-    // 5. Создаём профиль (триггер должен создать автоматически, но на всякий случай проверяем)
     const { data: existingProfile } = await supabase
       .from('profiles')
       .select('id')
@@ -49,7 +56,6 @@ export async function register({ name, email, password, role }) {
       .maybeSingle()
 
     if (!existingProfile) {
-      // Пытаемся создать профиль вручную
       const { error: profileError } = await supabase
         .from('profiles')
         .insert({
@@ -60,15 +66,15 @@ export async function register({ name, email, password, role }) {
         })
 
       if (profileError) {
-        console.error('Profile creation error:', profileError)
         throw new Error(translateSupabaseError(profileError))
       }
     }
 
-    return {
-      userId,
-      needsEmailConfirmation: false,
+    if (signInError && !sessionUser) {
+      throw new Error(translateSupabaseError(signInError))
     }
+
+    return { userId }
   } catch (err) {
     // Если это уже переведённая ошибка, пробрасываем как есть
     if (err.message && (err.message.includes('🔒') || err.message.includes('⏱️') || err.message.includes('📧'))) {

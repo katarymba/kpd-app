@@ -3,6 +3,10 @@ import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../utils/supabase'
 import { translateSupabaseError } from '../utils/errorMessages'
 
+const SIGNUP_TRIGGER_DELAY_MS = 1000
+const COMPLETE_REGISTRATION_RETRY_DELAY_MS = 400
+const COMPLETE_REGISTRATION_MAX_ATTEMPTS = 3
+
 function buildTechLogin(name) {
   const baseSlug = name
     .trim()
@@ -95,15 +99,53 @@ export default function RegisterChildPage() {
         throw new Error('Не удалось создать аккаунт. Попробуй снова.')
       }
 
-      const { error: completeRegistrationError } = await supabase.rpc('complete_child_registration', {
-        p_user_id: user.id,
-        p_family_id: family.id,
-        p_tech_email: techEmail,
-        p_tech_password: techPassword,
-      })
+      await new Promise(resolve => setTimeout(resolve, SIGNUP_TRIGGER_DELAY_MS))
+
+      let completeRegistrationError = null
+      for (let attempt = 0; attempt < COMPLETE_REGISTRATION_MAX_ATTEMPTS; attempt += 1) {
+        const { error } = await supabase.rpc('complete_child_registration', {
+          p_user_id: user.id,
+          p_family_id: family.id,
+          p_tech_email: techEmail,
+          p_tech_password: techPassword,
+        })
+        completeRegistrationError = error
+
+        if (!completeRegistrationError) break
+        if (attempt < COMPLETE_REGISTRATION_MAX_ATTEMPTS - 1) {
+          const retryDelay = COMPLETE_REGISTRATION_RETRY_DELAY_MS * (2 ** attempt)
+          await new Promise(resolve => setTimeout(resolve, retryDelay))
+        }
+      }
 
       if (completeRegistrationError) {
-        throw new Error(translateSupabaseError(completeRegistrationError))
+        const { data: existingProfile, error: profileLookupError } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', user.id)
+          .maybeSingle()
+
+        if (profileLookupError) {
+          throw new Error(translateSupabaseError(profileLookupError))
+        }
+
+        if (!existingProfile) {
+          const { error: profileInsertError } = await supabase
+            .from('profiles')
+            .insert({
+              id: user.id,
+              name: name.trim(),
+              role: 'child',
+              family_id: family.id,
+              avatar: '👤',
+              tech_email: techEmail,
+              tech_password: techPassword,
+            })
+
+          if (profileInsertError) {
+            throw new Error(translateSupabaseError(profileInsertError))
+          }
+        }
       }
 
       const { error: signInError } = await supabase.auth.signInWithPassword({
@@ -155,12 +197,11 @@ export default function RegisterChildPage() {
             <label className="form-label">Код семьи</label>
             <input
               type="text"
-              className="form-input"
+              className="form-input form-input-uppercase"
               placeholder="KPD-XXXX"
               value={inviteCode}
               onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
               required
-              style={{ textTransform: 'uppercase' }}
             />
             <p className="auth-helper">Попроси код у мамы или папы.</p>
           </div>
