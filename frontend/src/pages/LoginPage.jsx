@@ -131,6 +131,8 @@ export default function LoginPage() {
             type="button"
             className={loginMode === 'email' ? 'btn-primary btn-sm' : 'btn-ghost btn-sm'}
             onClick={() => setLoginMode('email')}
+            role="tab"
+            aria-selected={loginMode === 'email'}
           >
             👨 Взрослый
           </button>
@@ -138,6 +140,8 @@ export default function LoginPage() {
             type="button"
             className={loginMode === 'child' ? 'btn-primary btn-sm' : 'btn-ghost btn-sm'}
             onClick={() => setLoginMode('child')}
+            role="tab"
+            aria-selected={loginMode === 'child'}
           >
             👦 Ребёнок
           </button>

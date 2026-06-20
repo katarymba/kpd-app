@@ -8,6 +8,7 @@ function buildTechLogin(name) {
     .trim()
     .toLowerCase()
     .normalize('NFKD')
+    // Убираем combining marks, чтобы получить безопасный ASCII-slug для тех. email.
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '') || 'child'
