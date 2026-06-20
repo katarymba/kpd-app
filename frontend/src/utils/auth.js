@@ -28,7 +28,6 @@ export async function register({ name, email, password, role }) {
       throw new Error('Не удалось создать пользователя. Попробуй другой email.')
     }
 
-    // Даём время post-signup триггерам в auth.users выставить confirmed_at/email_confirmed_at.
     await new Promise(resolve => setTimeout(resolve, SIGNUP_TRIGGER_DELAY_MS))
 
     let signInData = null
@@ -41,7 +40,8 @@ export async function register({ name, email, password, role }) {
 
       if (!signInError) break
       if (attempt < SIGN_IN_MAX_ATTEMPTS - 1) {
-        await new Promise(resolve => setTimeout(resolve, SIGN_IN_RETRY_DELAY_MS))
+        const retryDelay = SIGN_IN_RETRY_DELAY_MS * (2 ** attempt)
+        await new Promise(resolve => setTimeout(resolve, retryDelay))
       }
     }
 

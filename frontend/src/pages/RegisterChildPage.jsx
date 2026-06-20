@@ -3,8 +3,6 @@ import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../utils/supabase'
 import { translateSupabaseError } from '../utils/errorMessages'
 
-// Для child-flow даём чуть больше времени, т.к. дальше сразу вызываем RPC,
-// которому нужен уже полностью созданный пользователь в auth.users.
 const SIGNUP_TRIGGER_DELAY_MS = 1000
 const COMPLETE_REGISTRATION_RETRY_DELAY_MS = 400
 const COMPLETE_REGISTRATION_MAX_ATTEMPTS = 3
@@ -101,7 +99,6 @@ export default function RegisterChildPage() {
         throw new Error('Не удалось создать аккаунт. Попробуй снова.')
       }
 
-      // Небольшая пауза нужна, чтобы auth.users и триггеры успели завершить регистрацию до RPC.
       await new Promise(resolve => setTimeout(resolve, SIGNUP_TRIGGER_DELAY_MS))
 
       let completeRegistrationError = null
@@ -116,7 +113,8 @@ export default function RegisterChildPage() {
 
         if (!completeRegistrationError) break
         if (attempt < COMPLETE_REGISTRATION_MAX_ATTEMPTS - 1) {
-          await new Promise(resolve => setTimeout(resolve, COMPLETE_REGISTRATION_RETRY_DELAY_MS))
+          const retryDelay = COMPLETE_REGISTRATION_RETRY_DELAY_MS * (2 ** attempt)
+          await new Promise(resolve => setTimeout(resolve, retryDelay))
         }
       }
 
