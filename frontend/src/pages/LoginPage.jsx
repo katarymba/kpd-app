@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { login } from '../utils/auth'
 import { supabase } from '../utils/supabase'
 
 export default function LoginPage() {
   const navigate = useNavigate()
+  const tabRefs = useRef({})
   const [loginMode, setLoginMode] = useState('email')
 
   const [email, setEmail] = useState('')
@@ -58,6 +59,41 @@ export default function LoginPage() {
       return false
     }
     return true
+  }
+
+  function focusModeTab(mode) {
+    tabRefs.current[mode]?.focus()
+  }
+
+  function handleModeTabKeyDown(event, currentMode) {
+    const modes = ['email', 'child']
+    const currentIndex = modes.indexOf(currentMode)
+
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+      event.preventDefault()
+      const nextMode = modes[(currentIndex + 1) % modes.length]
+      setLoginMode(nextMode)
+      focusModeTab(nextMode)
+    }
+
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+      event.preventDefault()
+      const previousMode = modes[(currentIndex - 1 + modes.length) % modes.length]
+      setLoginMode(previousMode)
+      focusModeTab(previousMode)
+    }
+
+    if (event.key === 'Home') {
+      event.preventDefault()
+      setLoginMode(modes[0])
+      focusModeTab(modes[0])
+    }
+
+    if (event.key === 'End') {
+      event.preventDefault()
+      setLoginMode(modes[modes.length - 1])
+      focusModeTab(modes[modes.length - 1])
+    }
   }
 
   async function handleEmailLogin(e) {
@@ -131,10 +167,15 @@ export default function LoginPage() {
             type="button"
             className={loginMode === 'email' ? 'btn-primary btn-sm' : 'btn-ghost btn-sm'}
             onClick={() => setLoginMode('email')}
+            onKeyDown={(event) => handleModeTabKeyDown(event, 'email')}
             id="login-tab-email"
             role="tab"
             aria-selected={loginMode === 'email'}
             aria-controls="login-panel-email"
+            tabIndex={loginMode === 'email' ? 0 : -1}
+            ref={(element) => {
+              tabRefs.current.email = element
+            }}
           >
             👨 Взрослый
           </button>
@@ -142,10 +183,15 @@ export default function LoginPage() {
             type="button"
             className={loginMode === 'child' ? 'btn-primary btn-sm' : 'btn-ghost btn-sm'}
             onClick={() => setLoginMode('child')}
+            onKeyDown={(event) => handleModeTabKeyDown(event, 'child')}
             id="login-tab-child"
             role="tab"
             aria-selected={loginMode === 'child'}
             aria-controls="login-panel-child"
+            tabIndex={loginMode === 'child' ? 0 : -1}
+            ref={(element) => {
+              tabRefs.current.child = element
+            }}
           >
             👦 Ребёнок
           </button>
